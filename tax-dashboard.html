@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>领益智造 · 税务合规看板</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --primary: #1a365d;
+  --primary-light: #2c5282;
+  --accent: #e53e3e;
+  --accent-orange: #ed8936;
+  --accent-green: #38a169;
+  --accent-blue: #3182ce;
+  --warn-red: #fff5f5;
+  --warn-border: #fc8181;
+  --warn-pass: #f0fff4;
+  --warn-pass-border: #68d391;
+  --bg: #f7fafc;
+  --card-bg: #ffffff;
+  --border: #e2e8f0;
+  --text: #2d3748;
+  --text-light: #718096;
+  --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.05);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Microsoft YaHei', 'PingFang SC', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* Header */
+.header { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); color: white; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; height: 64px; box-shadow: var(--shadow-md); position: sticky; top: 0; z-index: 100; }
+.header-logo { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; }
+.header-logo span { opacity: 0.7; font-weight: 400; margin-left: 12px; font-size: 14px; }
+.header-right { display: flex; align-items: center; gap: 12px; }
+.data-period { background: rgba(255,255,255,0.15); padding: 6px 14px; border-radius: 20px; font-size: 13px; }
+
+/* Nav Tabs */
+.nav { background: white; border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; gap: 0; box-shadow: var(--shadow); }
+.nav-tab { padding: 16px 24px; cursor: pointer; font-size: 14px; font-weight: 500; color: var(--text-light); border-bottom: 3px solid transparent; transition: all 0.2s; white-space: nowrap; }
+.nav-tab:hover { color: var(--primary); }
+.nav-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+/* Content */
+.content { padding: 28px 32px; max-width: 1600px; margin: 0 auto; }
+.section { display: none; }
+.section.active { display: block; }
+
+/* Upload Panel */
+.upload-panel { background: var(--card-bg); border: 2px dashed var(--border); border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.2s; margin-bottom: 24px; }
+.upload-panel:hover { border-color: var(--primary-light); background: #ebf8ff; }
+.upload-panel.dragover { border-color: var(--primary); background: #ebf8ff; }
+.upload-icon { font-size: 48px; margin-bottom: 16px; }
+.upload-panel h3 { font-size: 16px; margin-bottom: 8px; color: var(--text); }
+.upload-panel p { font-size: 13px; color: var(--text-light); }
+.upload-btn { display: inline-block; margin-top: 16px; padding: 10px 24px; background: var(--primary); color: white; border-radius: 8px; font-size: 14px; cursor: pointer; }
+.upload-status { margin-top: 12px; font-size: 13px; }
+.upload-status.success { color: var(--accent-green); }
+.upload-status.error { color: var(--accent); }
+#fileInput { display: none; }
+
+/* KPI Cards */
+.kpi-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
+.kpi-card { background: var(--card-bg); border-radius: 12px; padding: 20px; box-shadow: var(--shadow); border-left: 4px solid var(--accent-blue); }
+.kpi-card.warn { border-left-color: var(--accent); }
+.kpi-card.ok { border-left-color: var(--accent-green); }
+.kpi-card.orange { border-left-color: var(--accent-orange); }
+.kpi-label { font-size: 12px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.kpi-value { font-size: 28px; font-weight: 700; color: var(--text); }
+.kpi-sub { font-size: 12px; color: var(--text-light); margin-top: 4px; }
+
+/* Card */
+.card { background: var(--card-bg); border-radius: 12px; box-shadow: var(--shadow); margin-bottom: 24px; overflow: hidden; }
+.card-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.card-title { font-size: 15px; font-weight: 600; color: var(--text); }
+.card-body { padding: 24px; }
+
+/* Table */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { background: #f8f9fa; padding: 10px 12px; text-align: left; font-weight: 600; color: var(--text-light); border-bottom: 2px solid var(--border); white-space: nowrap; }
+td { padding: 9px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
+tr:hover td { background: #f7fafc; }
+.badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+.badge-red { background: #fed7d7; color: #c53030; }
+.badge-green { background: #c6f6d5; color: #276749; }
+.badge-orange { background: #feebc8; color: #c05621; }
+.badge-blue { background: #bee3f8; color: #2c5282; }
+.badge-gray { background: #e2e8f0; color: #4a5568; }
+.badge-yellow { background: #fefcbf; color: #744210; }
+
+/* AI Analysis Box */
+.ai-box { background: linear-gradient(135deg, #667eea11, #764ba211); border: 1px solid #7c3aed44; border-radius: 12px; padding: 20px; margin-bottom: 24px; }
+.ai-box-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.ai-box-icon { font-size: 22px; }
+.ai-box-title { font-size: 15px; font-weight: 600; color: #553c9a; }
+.ai-alerts { display: flex; flex-direction: column; gap: 10px; }
+.ai-alert { padding: 12px 16px; border-radius: 8px; font-size: 13px; display: flex; align-items: flex-start; gap: 10px; }
+.ai-alert.critical { background: #fff5f5; border: 1px solid #fc8181; color: #742a2a; }
+.ai-alert.warning { background: #fffaf0; border: 1px solid #f6ad55; color: #744210; }
+.ai-alert.info { background: #ebf8ff; border: 1px solid #90cdf4; color: #2c5282; }
+.ai-alert.good { background: #f0fff4; border: 1px solid #68d391; color: #276749; }
+.alert-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+/* Filters */
+.filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.filter-group { display: flex; align-items: center; gap: 8px; }
+.filter-label { font-size: 13px; color: var(--text-light); }
+select, input[type=text] { padding: 7px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; color: var(--text); background: white; }
+select:focus, input[type=text]:focus { outline: none; border-color: var(--primary-light); }
+.btn { padding: 7px 16px; border-radius: 8px; font-size: 13px; cursor: pointer; border: none; font-weight: 500; }
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: var(--primary-light); }
+.btn-outline { background: white; border: 1px solid var(--border); color: var(--text); }
+.btn-outline:hover { background: var(--bg); }
+
+/* Chart containers */
+.chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+.chart-wrap { position: relative; height: 300px; }
+.chart-wrap canvas { max-height: 300px; }
+
+/* P2 Status matrix */
+.p2-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.p2-card { border-radius: 10px; padding: 16px 20px; border: 2px solid; }
+.p2-card.pass { border-color: #68d391; background: #f0fff4; }
+.p2-card.fail { border-color: #fc8181; background: #fff5f5; }
+.p2-card.na { border-color: #e2e8f0; background: #f7fafc; }
+.p2-name { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+.p2-card.fail .p2-name { color: #c53030; }
+.p2-card.pass .p2-name { color: #276749; }
+.p2-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.p2-metric { font-size: 12px; }
+.p2-metric-label { color: var(--text-light); margin-bottom: 2px; }
+.p2-metric-value { font-weight: 600; color: var(--text); }
+.p2-verdict { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* TP traffic light */
+.tp-light { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+.tp-light.red { background: var(--accent); }
+.tp-light.green { background: var(--accent-green); }
+.tp-light.yellow { background: var(--accent-orange); }
+
+/* Pagination */
+.pagination { display: flex; gap: 8px; justify-content: flex-end; align-items: center; margin-top: 16px; }
+.page-btn { padding: 6px 12px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 13px; background: white; color: var(--text); }
+.page-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+.page-btn:hover:not(.active) { background: var(--bg); }
+.page-info { font-size: 13px; color: var(--text-light); }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .chart-grid { grid-template-columns: 1fr; }
+  .content { padding: 16px; }
+  .header { padding: 0 16px; }
+  .nav { padding: 0 16px; overflow-x: auto; }
+  .p2-grid { grid-template-columns: 1fr; }
+}
+
+.highlight-row td { background: #fff5f5 !important; }
+.top-tax td { background: #fffaf0 !important; }
+.num-right { text-align: right; }
+.pct-cell { font-weight: 600; }
+.warn-pct { color: var(--accent); }
+.ok-pct { color: var(--accent-green); }
+.na-pct { color: var(--text-light); }
+
+.summary-bar { background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%); color: white; border-radius: 10px; padding: 16px 24px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.summary-bar .period { font-size: 13px; opacity: 0.8; }
+.summary-bar .title { font-size: 16px; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">领益智造 <span>税务合规管理看板</span></div>
+  <div class="header-right">
+    <div class="data-period" id="dataPeriod">2026年2月 (FY2026)</div>
+  </div>
+</div>
+
+<div class="nav">
+  <div class="nav-tab active" onclick="switchTab('upload')">📤 数据上传</div>
+  <div class="nav-tab" onclick="switchTab('tax')">📊 单家税负率</div>
+  <div class="nav-tab" onclick="switchTab('pillar2')">🌐 支柱二安全港</div>
+  <div class="nav-tab" onclick="switchTab('tp')">🔗 关联交易 TP</div>
+</div>
+
+<div class="content">
+
+  <!-- UPLOAD SECTION -->
+  <div id="section-upload" class="section active">
+    <div class="summary-bar">
+      <div>
+        <div class="title">数据底稿上传</div>
+        <div class="period">上传最新的 TB-全量 Excel 文件，自动刷新所有看板数据</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📤 上传数据底稿 (TB-全量-XXXX)</div>
+      </div>
+      <div class="card-body">
+        <div class="upload-panel" id="dropZone" onclick="document.getElementById('fileInput').click()" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+          <div class="upload-icon">📂</div>
+          <h3>点击选择或拖放 Excel 文件</h3>
+          <p>支持 .xlsx 格式 · 请选择包含 <strong>TB-全量-2026</strong>、<strong>1.1单家税负率</strong>、<strong>1.2各辖区支柱二补足税</strong>、<strong>3.TP</strong> 等工作表的文件</p>
+          <div class="upload-btn">选择文件</div>
+          <div class="upload-status" id="uploadStatus"></div>
+        </div>
+        <input type="file" id="fileInput" accept=".xlsx" onchange="handleFileSelect(event)">
+      </div>
+    </div>
+
+    <div class="card" id="dataPreviewCard" style="display:none">
+      <div class="card-header">
+        <div class="card-title">✅ 数据预览</div>
+      </div>
+      <div class="card-body" id="dataPreview"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📋 数据说明</div>
+      </div>
+      <div class="card-body">
+        <table>
+          <tr><th>数据来源</th><th>工作表</th><th>用途</th><th>关键列</th></tr>
+          <tr><td>税负底稿</td><td>1.1单家税负率</td><td>单家税负率看板</td><td>C列(所得税费用)、D列(利润总额)、P列(当期所得税)</td></tr>
+          <tr><td>支柱二</td><td>1.2各辖区支柱二补足税</td><td>安全港分析看板</td><td>第1-16行：辖区、收入、利润、税率、安全港结论</td></tr>
+          <tr><td>关联交易</td><td>3.TP</td><td>关联交易看板</td><td>功能定位、利润率、四分位区间、比较结论</td></tr>
+          <tr><td>TB数据</td><td>TB-全量-2026</td><td>原始科目数据</td><td>各公司各会计科目余额及发生额</td></tr>
+        </table>
+        <div style="margin-top:16px; padding:12px; background:#ebf8ff; border-radius:8px; font-size:13px; color:#2c5282;">
+          💡 <strong>提示：</strong>上传文件后，系统将自动解析三个模块的数据并刷新看板。若浏览器无法解析（需要SheetJS库），您也可以直接使用当前内置的示例数据进行查看。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAX BURDEN SECTION -->
+  <div id="section-tax" class="section">
+    <div class="summary-bar">
+      <div>
+        <div class="title">单家税负率分析</div>
+        <div class="period">数据期间: <span id="taxPeriod">2026年2月累计</span> · 共 <span id="taxCompanyCount">--</span> 家主体</div>
+      </div>
+    </div>
+
+    <!-- AI Analysis -->
+    <div class="ai-box">
+      <div class="ai-box-header">
+        <span class="ai-box-icon">🤖</span>
+        <span class="ai-box-title">AI 税负率智能分析</span>
+      </div>
+      <div class="ai-alerts" id="taxAiAlerts">
+        <div class="ai-alert info"><span class="alert-icon">ℹ️</span><span>正在加载数据分析...</span></div>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-row" id="taxKpis"></div>
+
+    <!-- Charts -->
+    <div class="chart-grid">
+      <div class="card">
+        <div class="card-header"><div class="card-title">税负率分布（盈利主体）</div></div>
+        <div class="card-body"><div class="chart-wrap"><canvas id="taxDistChart"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">税负率 TOP 20 主体</div></div>
+        <div class="card-body"><div class="chart-wrap"><canvas id="taxTop20Chart"></canvas></div></div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">单家税负率明细</div>
+        <div class="filters">
+          <div class="filter-group">
+            <label class="filter-label">辖区</label>
+            <select id="taxCountryFilter" onchange="renderTaxTable()">
+              <option value="">全部</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">预警</label>
+            <select id="taxAlertFilter" onchange="renderTaxTable()">
+              <option value="">全部</option>
+              <option value="critical">税负异常高</option>
+              <option value="negative">亏损主体</option>
+              <option value="zero">税负为零</option>
+            </select>
+          </div>
+          <input type="text" id="taxSearch" placeholder="搜索公司名称..." oninput="renderTaxTable()" style="width:200px">
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>辖区</th>
+                <th>主体名称</th>
+                <th class="num-right">所得税费用</th>
+                <th class="num-right">利润总额</th>
+                <th class="num-right">税负率(C/D)</th>
+                <th class="num-right">当期所得税(P)</th>
+                <th class="num-right">税负率(P/D)</th>
+                <th>预警状态</th>
+              </tr>
+            </thead>
+            <tbody id="taxTableBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="taxPagination"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PILLAR 2 SECTION -->
+  <div id="section-pillar2" class="section">
+    <div class="summary-bar">
+      <div>
+        <div class="title">支柱二安全港分析</div>
+        <div class="period">OECD BEPS 2.0 · 过渡性国别报告安全港 (CbCR Safe Harbour) · 数据期间: 2026年2月</div>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-row" id="p2Kpis"></div>
+
+    <!-- AI Box -->
+    <div class="ai-box">
+      <div class="ai-box-header">
+        <span class="ai-box-icon">🤖</span>
+        <span class="ai-box-title">AI 支柱二风险分析</span>
+      </div>
+      <div class="ai-alerts" id="p2AiAlerts"></div>
+    </div>
+
+    <!-- Cards grid -->
+    <div class="p2-grid" id="p2Cards"></div>
+
+    <!-- Detailed table -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">支柱二详细数据</div>
+        <div class="filters">
+          <select id="p2StatusFilter" onchange="renderP2Table()">
+            <option value="">全部辖区</option>
+            <option value="fail">不通过（风险）</option>
+            <option value="pass">通过</option>
+          </select>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>辖区</th>
+                <th class="num-right">收入总额</th>
+                <th class="num-right">利润总额</th>
+                <th class="num-right">简化有效税额</th>
+                <th class="num-right">简化有效税率</th>
+                <th class="num-right">名义税率</th>
+                <th>微利测试</th>
+                <th>有效税率测试</th>
+                <th>常规微利测试</th>
+                <th>最终安全港结论</th>
+                <th class="num-right">补足税估算</th>
+                <th>备注</th>
+              </tr>
+            </thead>
+            <tbody id="p2TableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">各辖区有效税率 vs 名义税率对比</div></div>
+      <div class="card-body"><div class="chart-wrap" style="height:360px"><canvas id="p2RateChart"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- TP SECTION -->
+  <div id="section-tp" class="section">
+    <div class="summary-bar">
+      <div>
+        <div class="title">关联交易 (Transfer Pricing) 看板</div>
+        <div class="period">基于最新TPD四分位区间 · 数据期间: 2026年2月 · 共 <span id="tpCompanyCount">--</span> 家主体</div>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-row" id="tpKpis"></div>
+
+    <!-- AI Box -->
+    <div class="ai-box">
+      <div class="ai-box-header">
+        <span class="ai-box-icon">🤖</span>
+        <span class="ai-box-title">AI 关联交易风险分析</span>
+      </div>
+      <div class="ai-alerts" id="tpAiAlerts"></div>
+    </div>
+
+    <!-- Charts -->
+    <div class="chart-grid">
+      <div class="card">
+        <div class="card-header"><div class="card-title">TP合规结论分布</div></div>
+        <div class="card-body"><div class="chart-wrap"><canvas id="tpStatusChart"></canvas></div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">应计提税金拨备 TOP 10 (万元)</div></div>
+        <div class="card-body"><div class="chart-wrap"><canvas id="tpTaxChart"></canvas></div></div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">关联交易利润率分析明细</div>
+        <div class="filters">
+          <select id="tpStatusFilter" onchange="renderTpTable()">
+            <option value="">全部</option>
+            <option value="below">低于四分位区间</option>
+            <option value="above">高于四分位区间</option>
+            <option value="within">在四分位区间内</option>
+          </select>
+          <select id="tpCountryFilter" onchange="renderTpTable()">
+            <option value="">全部辖区</option>
+          </select>
+          <select id="tpFuncFilter" onchange="renderTpTable()">
+            <option value="">全部功能</option>
+            <option value="制造商/服务提供商">制造商</option>
+            <option value="分销商">分销商</option>
+          </select>
+          <input type="text" id="tpSearch" placeholder="搜索公司..." oninput="renderTpTable()" style="width:180px">
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>辖区</th>
+                <th>主体名称</th>
+                <th>功能定位</th>
+                <th>指标选择</th>
+                <th class="num-right">实际利润率</th>
+                <th class="num-right">Q1</th>
+                <th class="num-right">中位值</th>
+                <th class="num-right">Q3</th>
+                <th>比较结论</th>
+                <th class="num-right">利润增加额(万)</th>
+                <th class="num-right">应计提税金(万)</th>
+              </tr>
+            </thead>
+            <tbody id="tpTableBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="tpPagination"></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /content -->
+
+<script>
+// ============================================================
+// DATA (embedded from TB-全量-2026 extraction)
+// ============================================================
+const EMBEDDED_DATA = {"tax":[{"country": "CN", "name": "LY.LY1001 - 领益科技（深圳）有限公司", "tax_expense": -2563719.21, "total_profit": -22366196.29000004, "tax_rate": 0.11462472996117998, "current_tax": 0.0, "current_rate": 0.0}, {"country": "CN", "name": "LY.LY1002 - 领胜电子科技（深圳）有限公司", "tax_expense": 3760190.87, "total_profit": 9214527.869999984, "tax_rate": 0.4080720057554079, "current_tax": 0.0, "current_rate": 0.0}, {"country": "CN", "name": "LY.LY1003 - 深圳市领略数控设备有限公司", "tax_expense": 3806084.29, "total_profit": 42954997.930000074, "tax_rate": 0.08860631994913458, "current_tax": 10202003.05, "current_rate": 0.2375044474830448}, {"country": "CN", "name": "LY.LY1004 - 东莞盛翔精密金属有限公司", "tax_expense": -1638430.1, "total_profit": 10562319.039999941, "tax_rate": -0.15512030017226305, "current_tax": 1044407.26, "current_rate": 0.09888048789709782}, {"country": "CN", "name": "LY.LY1005 - 东莞领益精密制造科技有限公司", "tax_expense": -5734701.3999999985, "total_profit": -20389869.000000056, "tax_rate": 0.2812524886746444, "current_tax": 0.0, "current_rate": 0.0}, {"country": "CN", "name": "LY.LY1006 - 东莞领杰金属精密制造科技有限公司", "tax_expense": -18101764.15, "total_profit": -75636602.12999982, "tax_rate": 0.23932545408224093, "current_tax": 0.0, "current_rate": 0.0}, {"country": "CN", "name": "LY.LY1007 - 苏州领裕电子科技有限公司", "tax_expense": -8706650.149999999, "total_profit": -43515430.2, "tax_rate": 0.2000819045102764, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "LY.LY1009 - 领胜城科技（江苏）有限公司", "tax_expense": 1475288.6400000001, "total_profit": 43046068.21999998, "tax_rate": 0.03427232035362882, "current_tax": 1187426.48, "current_rate": 0.027585015986391535}, {"country": "CN", "name": "LY.LY1011 - 郑州领胜科技有限公司", "tax_expense": 1829947.59, "total_profit": 16068636.76999998, "tax_rate": 0.11388318848656147, "current_tax": 1570425.12, "current_rate": 0.09773231808512664}, {"country": "CN", "name": "LY.LY1012 - 成都领益科技有限公司", "tax_expense": 2214925.08, "total_profit": 8882124.860000048, "tax_rate": 0.24936882952127157, "current_tax": 2819010.73, "current_rate": 0.3173802186338534}, {"country": "HK", "name": "LY.LY1013 - LY INVESTMENT(HK) LIMITED", "tax_expense": -2014491.44, "total_profit": -16711233.360000074, "tax_rate": 0.12054714314635069, "current_tax": 742861.9099999999, "current_rate": -0.04445284761435446}, {"country": "HK", "name": "LY.LY1014 - TLG INVESTMENT(HK)LIMITED", "tax_expense": 6786955.03, "total_profit": 38100811.02999978, "tax_rate": 0.1781315107611776, "current_tax": 500321.24, "current_rate": 0.013131511547249154}, {"country": "USA", "name": "LY.LY1016 - TRIUMPH LEAD GROUP USA, INC.", "tax_expense": 566318.29, "total_profit": -2614755.4800000004, "tax_rate": -0.2165855638631265, "current_tax": 0.0, "current_rate": 0.0}, {"country": "CN", "name": "LY.LY1017 - 东莞市鑫焱精密刀具有限公司", "tax_expense": -72518.3, "total_profit": -242812.57000000007, "tax_rate": 0.2986595792796064, "current_tax": null, "current_rate": 0.0}, {"country": "BVI", "name": "LY.LY1019 - TRIUMPH LEAD GROUP LIMITED", "tax_expense": null, "total_profit": -223.56, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "HK", "name": "LY.LY1020 - HONG KONG CRYSTALYTE LIMITED", "tax_expense": null, "total_profit": -34.24000000000001, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "LY.LY1021 - 东莞领汇精密制造科技有限公司", "tax_expense": 403199.49000000005, "total_profit": 1612797.9999999995, "tax_rate": 0.2499999937995956, "current_tax": 403246.9, "current_rate": 0.2500293899173983}, {"country": "VN", "name": "LY.LY1023 - LY INVESTMENT VIETNAM LT.", "tax_expense": null, "total_profit": null, "tax_rate": null, "current_tax": null, "current_rate": null}, {"country": "CN", "name": "LY.LY1024 - 深圳市领滔科技有限公司", "tax_expense": 620523.67, "total_profit": 7679888.470000014, "tax_rate": 0.0807985262317226, "current_tax": 985202.31, "current_rate": 0.12828341373035568}, {"country": "CN", "name": "LY.LY1025 - 苏州领略智能科技有限公司", "tax_expense": null, "total_profit": -19849333.370000005, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "LY.LY1026 - 东莞领博实业有限公司", "tax_expense": 0.0, "total_profit": 16068845.820000017, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "LY.LY1029 - 东莞盛涛科技有限公司", "tax_expense": -5070541.84, "total_profit": -17588061.34, "tax_rate": 0.2882945278606812, "current_tax": 0.0, "current_rate": 0.0}, {"country": "CN", "name": "LY.LY1030 - 扬州领煌科技有限公司", "tax_expense": 0.0, "total_profit": -23259025.329999987, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "LY.LY1031 - 东台领裕智能科技有限公司", "tax_expense": 2841485.66, "total_profit": 21547714.290000077, "tax_rate": 0.13186946985456757, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "LY.LY1032 - 镒韬科技（东莞）有限公司", "tax_expense": -442330.15, "total_profit": 27717.10000000006, "tax_rate": -15.958745684072253, "current_tax": 149350.14, "current_rate": 5.388375407239563}, {"country": "SG", "name": "LY.JF1038 - Triumph Lead (Singapore) Pte. Ltd", "tax_expense": 5217909.64, "total_profit": 53748797.28000009, "tax_rate": 0.09707956092147911, "current_tax": 2776770.52, "current_rate": 0.05166200288230887}, {"country": "CN", "name": "LY.JF1042 - 深圳市领鹏智能科技有限公司", "tax_expense": -391841.44, "total_profit": -1504765.260000001, "tax_rate": 0.2604003763351101, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "LY.LY1038 - 东莞领睿科技有限公司", "tax_expense": -5481453.42, "total_profit": -21936971.859999996, "tax_rate": 0.24987283819217157, "current_tax": null, "current_rate": 0.0}, {"country": "USA", "name": "LY.LY1039 - Salcomp Energy USA Inc.", "tax_expense": null, "total_profit": -301951.9500000009, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "USA", "name": "LY.LY1040 - Salcomp Manufacturing USA Corp.", "tax_expense": null, "total_profit": 24182115.989999853, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "VN", "name": "LY.LY1041 - LINGYI VIETNAM COMPANY LIMITED", "tax_expense": null, "total_profit": -5443982.190000011, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "FI", "name": "LY.Sal1016 - Triumph Lead(Finland)Pte.Ltd Oy", "tax_expense": null, "total_profit": 128623.23000000417, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "LY.LY1042 - 扬州领滔科技有限公司", "tax_expense": null, "total_profit": null, "tax_rate": null, "current_tax": null, "current_rate": null}, {"country": "CN", "name": "LY.LY1043 - 深圳市华之益自动化技术有限公司（合并）", "tax_expense": -90840.2, "total_profit": -366654.780000001, "tax_rate": 0.2477540317352463, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "LY.LY1044 - 东台领滔电子有限公司", "tax_expense": null, "total_profit": -75.0, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "LY.LY1045 - 智联精密科技东台有限公司", "tax_expense": null, "total_profit": null, "tax_rate": null, "current_tax": null, "current_rate": null}, {"country": "CN", "name": "LY.LY1046 - 深圳市领益亮彩贸易有限公司", "tax_expense": 43842.84, "total_profit": 168134.23999999816, "tax_rate": 0.26076092531777273, "current_tax": 43808.2, "current_rate": 0.26055489946604854}, {"country": "CN", "name": "LY.LY1047 - 苏州领页智能科技有限公司", "tax_expense": null, "total_profit": -5154238.650000001, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "VN", "name": "LY.LY1048 - LINGYI THAI NGUYEN VIETNAM COMPANY LIMITED", "tax_expense": -624873.75, "total_profit": -3104886.5500000003, "tax_rate": 0.20125493796222602, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "JF.JF1001 - 广东领益智造股份有限公司", "tax_expense": 0.0, "total_profit": 63316154.05999999, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "JF.JF1002 - 江门江益磁材有限公司", "tax_expense": null, "total_profit": 3663130.1399999848, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "JF.JF1003 - 鹤山市江粉磁材新材料有限公司", "tax_expense": 0.0, "total_profit": 267275.41000000003, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "HK", "name": "JF.JF1004 - 江粉磁材国际控股有限公司", "tax_expense": null, "total_profit": -1833380.3800000004, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "JF.JF1005 - 江门安磁电子有限公司", "tax_expense": -162295.19, "total_profit": -1046837.3799999976, "tax_rate": 0.15503381241506717, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "JF.JF1006 - 江门恩富信电子材料有限公司", "tax_expense": null, "total_profit": -1.3399999999674037, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "JF.JF1007 - 江门创富投资管理有限公司", "tax_expense": null, "total_profit": -409152.34, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "JF.JF1009 - 江门江菱电机电气有限公司", "tax_expense": null, "total_profit": null, "tax_rate": null, "current_tax": null, "current_rate": null}, {"country": "CN", "name": "JF.JF1011 - 江门市正熙机械设备有限公司", "tax_expense": 9318.84, "total_profit": 186376.76999999996, "tax_rate": 0.050000008048213314, "current_tax": 9318.84, "current_rate": 0.050000008048213314}, {"country": "CN", "name": "JF.JF1012 - 鹤山市高磁电子有限公司", "tax_expense": null, "total_profit": null, "tax_rate": null, "current_tax": null, "current_rate": null}, {"country": "CN", "name": "JF.JF1013 - 深圳前海方圆商业保理有限公司", "tax_expense": 111407.16, "total_profit": 425864.71999999986, "tax_rate": 0.26160222898952523, "current_tax": 113574.5, "current_rate": 0.2666914977131706}, {"country": "CN", "name": "JF.JF1014 - 鹤山市江磁线缆有限公司", "tax_expense": null, "total_profit": null, "tax_rate": null, "current_tax": null, "current_rate": null}, {"country": "CN", "name": "JF.JF1015 - 江门金磁磁材有限公司", "tax_expense": null, "total_profit": -60.0, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "JF.JF1017 - 江粉磁材（武汉）技术研发有限公司", "tax_expense": null, "total_profit": -85748.54999999999, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "FR", "name": "JF.JF1023 - STEELMAG INTERNATIONAL SAS", "tax_expense": null, "total_profit": null, "tax_rate": null, "current_tax": null, "current_rate": null}, {"country": "CN", "name": "JF.JF1025 - 领潮（广州）私募股权投资基金管理有限公司", "tax_expense": null, "total_profit": 2772.4299999999994, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "JF.JF1028 - 郑州领业科技有限公司", "tax_expense": null, "total_profit": -921804.4700000001, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "JF.JF1033 - 领先科技（东台）有限公司", "tax_expense": 4448933.99, "total_profit": 17789148.10000003, "tax_rate": 0.2500925825672334, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "JF.JF1047 - 广州领宇股权投资合伙企业（有限合伙）", "tax_expense": null, "total_profit": -51798.78, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "LC.LC1001 - 深圳市东方亮彩精密技术有限公司", "tax_expense": null, "total_profit": -4749426.860000001, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "LC.LC1002 - 领益智造科技（东莞）有限公司", "tax_expense": null, "total_profit": -21453368.830000013, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "LC.LC1003 - 东莞市欧比迪精密五金有限公司", "tax_expense": null, "total_profit": 12583534.290000027, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "LC.LC1005 - 苏州领镒精密技术有限公司", "tax_expense": null, "total_profit": -801839.6199999998, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "HK", "name": "LC.LC1007 - LingYi iTech Investment(HK) Limited", "tax_expense": 0.0, "total_profit": -525.279999999893, "tax_rate": 0.0, "current_tax": 0.0, "current_rate": 0.0}, {"country": "CN", "name": "LC.LC1008 - 桂林领益制造有限公司", "tax_expense": -2754136.89, "total_profit": -18588616.86, "tax_rate": 0.1481625508096034, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "LC.LC1009 - 东莞市欧比迪精密五金有限公司大朗分公司", "tax_expense": null, "total_profit": -776416.7300000002, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "FI", "name": "Salcomp.Sal1001 - Parent Salcomp Plc, Salo", "tax_expense": 0.0, "total_profit": 36546227.55999978, "tax_rate": 0.0, "current_tax": 0.0, "current_rate": 0.0}, {"country": "FI", "name": "Salcomp.Sal1002 - Salcomp Manufacturing Oy, Salo", "tax_expense": 0.0, "total_profit": -3004546.5400000135, "tax_rate": 0.0, "current_tax": 0.0, "current_rate": 0.0}, {"country": "TW", "name": "Salcomp.Sal1003 - Salcomp Taiwan Co.Ltd (Taiwan)", "tax_expense": 152099.47, "total_profit": 698423.6699999961, "tax_rate": 0.2177753654884017, "current_tax": 152101.03, "current_rate": 0.21777759908967698}, {"country": "USA", "name": "Salcomp.Sal1004 - Salcomp USA (USA)", "tax_expense": null, "total_profit": null, "tax_rate": null, "current_tax": null, "current_rate": null}, {"country": "CN", "name": "Salcomp.Sal1006 - Salcomp （Shenzhen）Co.Ltd（China）", "tax_expense": -39488.46999999997, "total_profit": -20905501.169999268, "tax_rate": 0.0018889032929126069, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "Salcomp.Sal1007 - Salcomp （Guigang）Co.Ltd（China）", "tax_expense": null, "total_profit": 1198244.2099999993, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "IN", "name": "Salcomp.Sal1008 - Salcomp Manufacturing India（India）", "tax_expense": 0.0, "total_profit": 22253086.429999948, "tax_rate": 0.0, "current_tax": 0.0, "current_rate": 0.0}, {"country": "BR", "name": "Salcomp.Sal1009 - Salcomp Industrial Electronica da Amazonia Ltda （Brazil）", "tax_expense": 1789423.9399999976, "total_profit": 8165508.549999969, "tax_rate": 0.21914421239568777, "current_tax": 1302520.9499999997, "current_rate": 0.15951498207665274}, {"country": "KR", "name": "Salcomp.Sal1011 - Salcomp Korea Ltd (Korea)", "tax_expense": 0.0, "total_profit": -725677.6399999997, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "IN", "name": "Salcomp.Sal1012 - Salcomp LOM india", "tax_expense": 268485.0, "total_profit": 2443772.5399999996, "tax_rate": 0.10986497131193726, "current_tax": 268485.0, "current_rate": 0.10986497131193726}, {"country": "IN", "name": "Salcomp.Sal1013 - Salcomp Technologies India Private Limited", "tax_expense": null, "total_profit": -83707891.10999985, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "Salcomp.Sal1014 - 桂林赛尔康电子技术有限公司", "tax_expense": null, "total_profit": -15634069.959999984, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "BR", "name": "Salcomp.Sal1015 - Valor Log Armazem Geral Ltda", "tax_expense": -135264.93, "total_profit": -325302.47000000015, "tax_rate": 0.41581279724067244, "current_tax": 0.0, "current_rate": 0.0}, {"country": "CN", "name": "LT.JF1032 - 成都领泰科技有限公司", "tax_expense": null, "total_profit": 2352849.880000001, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "LT.JF1034 - 绵阳市维奇电子技术有限公司", "tax_expense": 77870.46, "total_profit": -1129820.9599999993, "tax_rate": -0.06892283180867884, "current_tax": 0.0, "current_rate": 0.0}, {"country": "CN", "name": "LT.JF1035 - 绵阳领益通信技术有限公司", "tax_expense": null, "total_profit": null, "tax_rate": null, "current_tax": null, "current_rate": null}, {"country": "CN", "name": "LT.LT1001 - 深圳智成通信有限公司", "tax_expense": null, "total_profit": null, "tax_rate": null, "current_tax": null, "current_rate": null}, {"country": "CN", "name": "LT.LT1002 - 黄山领益通信技术有限公司", "tax_expense": null, "total_profit": null, "tax_rate": null, "current_tax": null, "current_rate": null}, {"country": "CN", "name": "LT.LT1003 - 成都领益通信技术有限公司", "tax_expense": null, "total_profit": 895.64, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "LT.LT1004 - 珠海领益通信技术有限公司", "tax_expense": null, "total_profit": -864301.8100000008, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "FATP.JF1048 - 深圳市领懿科技发展有限公司（合并）", "tax_expense": 78601.59999999999, "total_profit": -2289112.650000001, "tax_rate": -0.03433714806477521, "current_tax": null, "current_rate": 0.0}, {"country": "SG", "name": "FATP.JF1039 - SALCOMP HOLDINGS PTE. LTD", "tax_expense": 50662.3, "total_profit": 298013.60000002856, "tax_rate": 0.169999959733365, "current_tax": 50662.3, "current_rate": 0.169999959733365}, {"country": "TR", "name": "FATP.JF1040 - Salcomp Turkey Co. ,Ltd", "tax_expense": 15641.92, "total_profit": 14764856.720000029, "tax_rate": 0.0010594020854135299, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "FATP.JF1043 - 领懿实业（珠海）小合并", "tax_expense": 0.0, "total_profit": -149035.12000000005, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "YL.JF1037 - 苏州益道医疗科技有限公司", "tax_expense": null, "total_profit": null, "tax_rate": null, "current_tax": null, "current_rate": null}, {"country": "CN", "name": "QC.LY1027 - 浙江锦泰电子有限公司", "tax_expense": null, "total_profit": 10726930.610000018, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "QC.LY1028 - 苏州领汇新能源科技有限公司", "tax_expense": 4493459.46, "total_profit": 19080565.10999994, "tax_rate": 0.23549928600621065, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "QC.LY1033 - 常州领晟新能源科技有限公司", "tax_expense": 28407.47000000009, "total_profit": 2804971.3399999994, "tax_rate": 0.010127543763067503, "current_tax": 979950.68, "current_rate": 0.3493621007906627}, {"country": "CN", "name": "QC.LY1034 - 福建领福新能源科技有限公司", "tax_expense": 195044.88999999996, "total_profit": 1569424.9799999974, "tax_rate": 0.12427793139879822, "current_tax": 752551.38, "current_rate": 0.4795077111618303}, {"country": "CN", "name": "QC.LY1035 - 荆门领福新能源科技有限责任公司", "tax_expense": null, "total_profit": null, "tax_rate": null, "current_tax": null, "current_rate": null}, {"country": "CN", "name": "QC.LY1036 - 扬州领晟新能源有限公司", "tax_expense": -4625.720000000001, "total_profit": -18502.869999971364, "tax_rate": 0.25000013511456115, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "QC.JF1044 - 苏州领鼎新能源科技有限公司", "tax_expense": null, "total_profit": -650.0, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "QC.QC1001 - 成都领韬新能源科技有限公司", "tax_expense": null, "total_profit": -1136357.3699999996, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "QC.QC1002 - 成都领福新能源科技有限公司", "tax_expense": null, "total_profit": 0.0, "tax_rate": null, "current_tax": null, "current_rate": null}, {"country": "CN", "name": "QC.QC1003 - 扬州领汇新能源有限公司", "tax_expense": -49494.38, "total_profit": -4228463.870000014, "tax_rate": 0.011705049758412583, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "QC.QC1004 - 温州芯壳科技有限公司", "tax_expense": 0.0, "total_profit": -5049.2499999994325, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "SG", "name": "QC.QC1005 - LINGHUI SG NEW ENERGY PTE. LTD.", "tax_expense": null, "total_profit": 333.17999999999984, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "JP", "name": "QC.QC1006 - 领航精密制造株式会社", "tax_expense": null, "total_profit": -13548.07, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "LY.LY1047 - 苏州领页智能科技有限公司", "tax_expense": null, "total_profit": -5154238.650000001, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "JY.JY1001 - 东莞捷盈精密硅胶科技有限公司", "tax_expense": -1247934.2899999998, "total_profit": -5048277.559999995, "tax_rate": 0.247200015286006, "current_tax": 14135.1, "current_rate": -0.002799984713994215}, {"country": "HK", "name": "JY.JY1002 - ANSHUN (ASIA) INVESTMENT LIMITED", "tax_expense": 292585.45, "total_profit": 1767207.4600000011, "tax_rate": 0.1655637250422199, "current_tax": null, "current_rate": 0.0}, {"country": "HK", "name": "JY.JY1003 - THE CARE LABS COMPANY LIMITED", "tax_expense": null, "total_profit": -1277.14, "tax_rate": 0.0, "current_tax": null, "current_rate": 0.0}, {"country": "CN", "name": "KD.KD1001 - 江苏科达斯特恩汽车科技股份有限公司", "tax_expense": -960692.42, "total_profit": -1407598.6500000006, "tax_rate": 0.6825045051016493, "current_tax": 0.0, "current_rate": null}, {"country": "CN", "name": "KD.KD1002 - 郑州市科达斯特恩汽车零部件有限公司", "tax_expense": 960831.94, "total_profit": 3843327.7800000063, "tax_rate": 0.24999999869904366, "current_tax": 998279.47, "current_rate": null}, {"country": "CN", "name": "KD.KD1003 - 沈阳科达斯特恩汽车部件有限公司", "tax_expense": null, "total_profit": -60.0, "tax_rate": 0.0, "current_tax": null, "current_rate": null}, {"country": "CN", "name": "KD.KD1004 - 济南科恩汽车部件有限公司", "tax_expense": 0.0, "total_profit": -65637.23999999999, "tax_rate": 0.0, "current_tax": 0.0, "current_rate": null}, {"country": "CN", "name": "KD.KD1005 - 常州科达汽车配件有限公司", "tax_expense": -58299.41, "total_profit": -233197.56999999593, "tax_rate": 0.250000075043668, "current_tax": 0.0, "current_rate": null}, {"country": "CN", "name": "KD.KD1006 - 安庆科达汽车部件有限公司", "tax_expense": -58984.14, "total_profit": -235936.55999999918, "tax_rate": 0.2500000000000009, "current_tax": 116900.24, "current_rate": null}, {"country": "CN", "name": "KD.KD1007 - 宁波斯特恩汽车饰件有限公司", "tax_expense": null, "total_profit": null, "tax_rate": null, "current_tax": null, "current_rate": null}, {"country": "CN", "name": "KD.KD1008 - 安徽科恩汽车部件有限公司", "tax_expense": -110292.43000000001, "total_profit": -441169.7300000006, "tax_rate": 0.2499999943332464, "current_tax": 61668.92, "current_rate": null}, {"country": "CN", "name": "KD.KD1009 - 合肥斯特恩汽车部件有限公司", "tax_expense": 8529.75, "total_profit": 356807.63000000035, "tax_rate": 0.02390573878703208, "current_tax": 20999.79, "current_rate": null}, {"country": "CN", "name": "KD.KD1010 - 湘潭科达汽车饰件系统有限公司", "tax_expense": -70271.88, "total_profit": -351359.36000000004, "tax_rate": 0.20000002276871176, "current_tax": 0.0, "current_rate": null}, {"country": "CN", "name": "KD.KD1011 - 宁德科达斯特恩汽车内饰系统有限公司", "tax_expense": -88461.61, "total_profit": -442308.05000000034, "tax_rate": 0.19999999999999984, "current_tax": 0.0, "current_rate": null}, {"country": "CN", "name": "XL.XL1001 - 浙江向隆机械有限公司", "tax_expense": 4446487.47, "total_profit": 37424346.97000004, "tax_rate": 0.11881269360730264, "current_tax": 4446487.47, "current_rate": null}, {"country": "CN", "name": "XL.XL1002 - 宁波向隆汽车部件有限公司", "tax_expense": 2153606.88, "total_profit": 8667698.629999984, "tax_rate": 0.2484635163186337, "current_tax": 2153606.88, "current_rate": null}, {"country": "THA", "name": "XL.XL1003 - 向隆机械（泰国）有限公司", "tax_expense": null, "total_profit": 2850145.1199999987, "tax_rate": 0.0, "current_tax": null, "current_rate": null}, {"country": "CN", "name": "XL.XL1004 - 宁波隆俊进出口有限公司", "tax_expense": null, "total_profit": -2102974.099999999, "tax_rate": 0.0, "current_tax": null, "current_rate": null}],"pillar2":[{"jurisdiction": "中国 - China", "code": "CN", "revenue": 8887929321.270002, "profit": -1342738483.369999, "micro_profit_test": "No", "eff_tax": -19891779.149999987, "eff_rate": 0.014814336072409045, "nominal_rate": 0.25, "eff_rate_conclusion": "No", "salary": 1364871640.5500002, "tangible_asset": 13137538582.240746, "sbie": 1129480609.7430966, "routine_profit_test": "Yes", "final_safe_harbor": "Yes", "top_up_tax": 0.0, "note": null}, {"jurisdiction": "香港 - Hong Kong", "code": "HK", "revenue": 1668743002.2099998, "profit": 23154948.469999705, "micro_profit_test": "No", "eff_tax": -34495639.79888287, "eff_rate": -0.01489773982592815, "nominal_rate": 0.165, "eff_rate_conclusion": "No", "salary": 5411673.520000001, "tangible_asset": 608236.2999999999, "sbie": 565746.6167200002, "routine_profit_test": "No", "final_safe_harbor": "No", "top_up_tax": 3388380.2779919556, "note": "芬兰完成债转股后，香港的免税利息收入大幅下降，ETR得到提高（年底预估为15.26%），需进行监控"}, {"jurisdiction": "新加坡 - Singapore", "code": "SG", "revenue": 2252212041.1900005, "profit": 58925655.630000144, "micro_profit_test": "No", "eff_tax": -23458611.2768256, "eff_rate": -0.3981052230309404, "nominal_rate": 0.17, "eff_rate_conclusion": "No", "salary": 4389977.5, "tangible_asset": 1617584.94, "sbie": 544374.29544, "routine_profit_test": "No", "final_safe_harbor": "No", "top_up_tax": 5148529.319520741, "note": "Salcomp holding亏损解决后，对支柱二影响不大"}, {"jurisdiction": "越南 - Vietnam", "code": "VN", "revenue": 102568889.39, "profit": -5443982.190000011, "micro_profit_test": "No", "eff_tax": 0.0, "eff_rate": 0.0, "nominal_rate": 0.2, "eff_rate_conclusion": "No", "salary": 22359056.849999998, "tangible_asset": 263859406.80999997, "sbie": 22199784.375159997, "routine_profit_test": "Yes", "final_safe_harbor": "Yes", "top_up_tax": 0.0, "note": null}, {"jurisdiction": "芬兰 - Finland", "code": "FI", "revenue": 808926323.8899996, "profit": 33670304.24999977, "micro_profit_test": "No", "eff_tax": 0.0, "eff_rate": 0.0, "nominal_rate": 0.2, "eff_rate_conclusion": "No", "salary": 734489.9700000001, "tangible_asset": 4883152.02, "sbie": 441630.59063999995, "routine_profit_test": "No", "final_safe_harbor": "No", "top_up_tax": 4984301.048903965, "note": "芬兰因为汇损由亏转正，但存在未弥补亏损，分子有效税额应考虑未弥补亏损对应的DTA转回，最终导致ETR=15%"}, {"jurisdiction": "巴西 - Brazil", "code": "BR", "revenue": 153716631.42999995, "profit": 7840206.079999969, "micro_profit_test": "No", "eff_tax": 1654159.0099999977, "eff_rate": 0.21098412377446132, "nominal_rate": 0.33999999999999997, "eff_rate_conclusion": "Yes", "salary": 26774725.47, "tangible_asset": 1062031315.33, "sbie": 83284753.6102, "routine_profit_test": "Yes", "final_safe_harbor": "Yes", "top_up_tax": 0.0, "note": "巴西物流今年开始盈利，因为提高对巴西赛尔康的运输价格，将巴西赛尔康的利润转移到巴西物流\n巴西有效税率提升是因为所得税优惠下降，及因收入增加可使用的可弥补亏损增加，导致递延所得税增加（转回DTA）"}, {"jurisdiction": "印度 - India", "code": "IN", "revenue": 1212474214.0400002, "profit": -59011032.139999904, "micro_profit_test": "No", "eff_tax": 268485.0, "eff_rate": -0.004549742484812611, "nominal_rate": 0.3432, "eff_rate_conclusion": "No", "salary": 60440608.16, "tangible_asset": 6816386429.84, "sbie": 523847667.05120003, "routine_profit_test": "Yes", "final_safe_harbor": "Yes", "top_up_tax": 0.0, "note": null}, {"jurisdiction": "韩国 - South Korea", "code": "KR", "revenue": 396590.12, "profit": -725677.6399999997, "micro_profit_test": "Yes", "eff_tax": 0.0, "eff_rate": 0.0, "nominal_rate": 0.24, "eff_rate_conclusion": "No", "salary": 882874.4500000002, "tangible_asset": 263435.71499999997, "sbie": 104777.06154000002, "routine_profit_test": "Yes", "final_safe_harbor": "Yes", "top_up_tax": 0.0, "note": null}, {"jurisdiction": "美国 - United States", "code": "USA", "revenue": 151503588.05999994, "profit": 21265408.559999853, "micro_profit_test": "No", "eff_tax": 741940.82, "eff_rate": 0.034889563391487695, "nominal_rate": 0.21, "eff_rate_conclusion": "No", "salary": 64361494.949999996, "tangible_asset": 127614905.72000001, "sbie": 15877436.34992, "routine_profit_test": "No", "final_safe_harbor": "No", "top_up_tax": 620211.8335368228, "note": null}, {"jurisdiction": "法国 - France", "code": "FR", "revenue": 0.0, "profit": 0.0, "micro_profit_test": "Yes", "eff_tax": 0.0, "eff_rate": null, "nominal_rate": 0.3333, "eff_rate_conclusion": null, "salary": 0.0, "tangible_asset": 34118619.765, "sbie": 2593015.10214, "routine_profit_test": "Yes", "final_safe_harbor": null, "top_up_tax": null, "note": null}, {"jurisdiction": "土耳其 - Turkey", "code": "TR", "revenue": 32532259.670000013, "profit": 14764856.720000029, "micro_profit_test": "No", "eff_tax": 15641.92, "eff_rate": 0.0010594020854135299, "nominal_rate": 0.24, "eff_rate_conclusion": "No", "salary": 72175.38, "tangible_asset": 59799976.215, "sbie": 4551727.028820001, "routine_profit_test": "No", "final_safe_harbor": "No", "top_up_tax": 1521149.6427835692, "note": "税收返还导致有效税率基本为0，正在了解政府补助是否存在调整空间"}, {"jurisdiction": "台湾 - Taiwan", "code": "TW", "revenue": 14367127.16, "profit": 698423.6699999961, "micro_profit_test": "Yes", "eff_tax": 152099.47, "eff_rate": 0.2177753654884017, "nominal_rate": 0.2, "eff_rate_conclusion": "Yes", "salary": 9117782.440000001, "tangible_asset": 9383122.295000002, "sbie": 1588424.4086600002, "routine_profit_test": "Yes", "final_safe_harbor": "Yes", "top_up_tax": 0.0, "note": null}, {"jurisdiction": "英属维京群岛 - BVI", "code": "BVI", "revenue": 0.0, "profit": -223.56, "micro_profit_test": "Yes", "eff_tax": 0.0, "eff_rate": 0.0, "nominal_rate": 0.0, "eff_rate_conclusion": "No", "salary": 0.0, "tangible_asset": 0.0, "sbie": 0.0, "routine_profit_test": "Yes", "final_safe_harbor": "Yes", "top_up_tax": 0.0, "note": null}, {"jurisdiction": "菲律宾", "code": "PHI", "revenue": null, "profit": null, "micro_profit_test": null, "eff_tax": null, "eff_rate": null, "nominal_rate": null, "eff_rate_conclusion": null, "salary": null, "tangible_asset": null, "sbie": null, "routine_profit_test": null, "final_safe_harbor": null, "top_up_tax": null, "note": null}, {"jurisdiction": "泰国", "code": "THA", "revenue": 33198568.93, "profit": 2850145.1199999987, "micro_profit_test": "Yes", "eff_tax": 0.0, "eff_rate": 0.0, "nominal_rate": 0.0, "eff_rate_conclusion": null, "salary": 0.0, "tangible_asset": 56666910.805, "sbie": 4306685.221179999, "routine_profit_test": "Yes", "final_safe_harbor": "Yes", "top_up_tax": 0.0, "note": null}, {"jurisdiction": "日本 - Japan", "code": "JP", "revenue": 0.0, "profit": 0.0, "micro_profit_test": "Yes", "eff_tax": 0.0, "eff_rate": 0.0, "nominal_rate": 0.259, "eff_rate_conclusion": "Yes", "salary": 0.0, "tangible_asset": 0.0, "sbie": 0.0, "routine_profit_test": "Yes", "final_safe_harbor": "Yes", "top_up_tax": 0.0, "note": null}],"tp":[{"col": 3, "country": "CN", "name": "LY.LY1001 - 领益科技（深圳）有限公司", "功能定位": "分销商", "税率": "25%", "营收净额": "342914885.33", "营业总成本": "340945408.54999995", "毛利润": "1644950.020000031", "息税前利润": "-23429769.78999996", "利润总额": "-25367315.93000004", "NCP": "-0.06248558357181178", "OM": "-0.06832532150785058", "指标选择": "OM", "Q1": "0.0088", "中位值": "0.0193", "Q3": "0.0251", "比较结论": "低于四分位区间", "下四分位基准": "0.0088", "应留存利润": "3299672.6983439997", "利润增加额": "26729442.48834396", "应计提税金": "824918.1745859999"}, {"col": 4, "country": "CN", "name": "LY.LY1002 - 领胜电子科技（深圳）有限公司", "功能定位": "制造商/服务提供商", "税率": "25%", "营收净额": "219702719.87000003", "营业总成本": "206932632.48000002", "毛利润": "12592980.200000016", "息税前利润": "-6324113.589999974", "利润总额": "9214527.869999984", "NCP": "-0.0279794814323192", "OM": "-0.028784867086497634", "指标选择": "NCP", "Q1": "0.0289", "中位值": "0.0483", "Q3": "0.0797", "比较结论": "低于四分位区间", "下四分位基准": "0.0289", "应留存利润": "6349408.604243001", "利润增加额": "12673522.194242975", "应计提税金": "1587352.1510607502"}, {"col": 5, "country": "CN", "name": "LY.LY1003 - 深圳市领略数控设备有限公司", "功能定位": "制造商/服务提供商", "税率": "25%", "营收净额": "746134966.33", "营业总成本": "586129135.0099999", "毛利润": "159442251.9300002", "息税前利润": "78875377.44000018", "利润总额": "42954997.930000074", "NCP": "0.11788898098401793", "OM": "0.10571194354818003", "指标选择": "NCP", "Q1": "0.0166", "中位值": "0.0454", "Q3": "0.0813", "比较结论": "高于四分位区间", "下四分位基准": "0.0166", "应留存利润": "12415808.347374", "利润增加额": "0", "应计提税金": "0"}, {"col": 6, "country": "CN", "name": "LY.LY1004 - 东莞盛翔精密金属有限公司", "功能定位": "制造商/服务提供商", "税率": "25%", "营收净额": "453167586.16", "营业总成本": "347906830.50000006", "毛利润": "104557793.31999996", "息税前利润": "54658628.93000001", "利润总额": "10562319.039999941", "NCP": "0.136928918807348", "OM": "0.12061460395515064", "指标选择": "NCP", "Q1": "0.0081", "中位值": "0.0361", "Q3": "0.0535", "比较结论": "高于四分位区间", "下四分位基准": "0.0081", "应留存利润": "3676054.03677", "利润增加额": "0", "应计提税金": "0"}, {"col": 7, "country": "CN", "name": "LY.LY1005 - 东莞领益精密制造科技有限公司", "功能定位": "制造商/服务提供商", "税率": "25%", "营收净额": "291364858.26", "营业总成本": "279463450.74999994", "毛利润": "10484409.55000005", "息税前利润": "-18885507.129999936", "利润总额": "-20389869.000000056", "NCP": "-0.06087182880916168", "OM": "-0.06481738135059313", "指标选择": "NCP", "Q1": "0.0081", "中位值": "0.0361", "Q3": "0.0535", "比较结论": "低于四分位区间", "下四分位基准": "0.0081", "应留存利润": "2360055.3519059997", "利润增加额": "21245562.481905937", "应计提税金": "590013.8379765004"}, {"col": 8, "country": "CN", "name": "LY.LY1006 - 东莞领杰金属精密制造科技有限公司", "功能定位": "制造商/服务提供商", "税率": "25%", "营收净额": "901399718.4100002", "营业总成本": "828817483.6300001", "毛利润": "70925041.99000008", "息税前利润": "-43032078.2299999", "利润总额": "-75636602.12999982", "NCP": "-0.04556398713289291", "OM": "-0.047739174254353194", "指标选择": "NCP", "Q1": "0.0081", "中位值": "0.0361", "Q3": "0.0535", "比较结论": "低于四分位区间", "下四分位基准": "0.0081", "应留存利润": "7301337.719121002", "利润增加额": "50333415.9491209", "应计提税金": "1825334.4297802504"}, {"col": 9, "country": "CN", "name": "LY.LY1007 - 苏州领裕电子科技有限公司", "功能定位": "制造商/服务提供商", "税率": "25%", "营收净额": "285209561.92999995", "营业总成本": "261487736.12999994", "毛利润": "23250153.68000001", "息税前利润": "-36083776.90999997", "利润总额": "-43515430.2", "NCP": "-0.11230788985628251", "OM": "-0.12651671516839308", "指标选择": "NCP", "Q1": "0.0166", "中位值": "0.0454", "Q3": "0.0813", "比较结论": "低于四分位区间", "下四分位基准": "0.0166", "应留存利润": "4734478.728037999", "利润增加额": "40818255.638037965", "应计提税金": "1183619.6820094995"}, {"col": 10, "country": "CN", "name": "LY.LY1009 - 领胜城科技（江苏）有限公司", "功能定位": "制造商/服务提供商", "税率": "25%", "营收净额": "798240602.1599998", "营业总成本": "693939800.31", "毛利润": "102080830.8199999", "息税前利润": "49065023.02999997", "利润总额": "43046068.21999998", "NCP": "0.06549202135896906", "OM": "0.06146645873090448", "指标选择": "NCP", "Q1": "0.0166", "中位值": "0.0454", "Q3": "0.0813", "比较结论": "在四分位区间内", "下四分位基准": "0.0166", "应留存利润": "13250793.995855998", "利润增加额": "0", "应计提税金": "0"}, {"col": 11, "country": "CN", "name": "LY.LY1011 - 郑州领胜科技有限公司", "功能定位": "制造商/服务提供商", "税率": "25%", "营收净额": "79018894.08000001", "营业总成本": "53260143.57000001", "毛利润": "25420826.000000004", "息税前利润": "19585544.990000002", "利润总额": "16068636.76999998", "NCP": "0.3295379663081342", "OM": "0.24785901167094643", "指标选择": "NCP", "Q1": "0.0166", "中位值": "0.0454", "Q3": "0.0813", "比较结论": "高于四分位区间", "下四分位基准": "0.0166", "应留存利润": "1311713.6417280002", "利润增加额": "0", "应计提税金": "0"}, {"col": 12, "country": "CN", "name": "LY.LY1012 - 成都领益科技有限公司", "功能定位": "制造商/服务提供商", "税率": "25%", "营收净额": "214160444.54", "营业总成本": "160815064.42", "毛利润": "52893371.00000001", "息税前利润": "20725879.900000006", "利润总额": "8882124.860000048", "NCP": "0.10714672395066946", "OM": "0.09677734814436711", "指标选择": "NCP", "Q1": "0.0166", "中位值": "0.0454", "Q3": "0.0813", "比较结论": "高于四分位区间", "下四分位基准": "0.0166", "应留存利润": "3555063.3793639997", "利润增加额": "0", "应计提税金": "0"}, {"col": 13, "country": "HK", "name": "LY.LY1013 - LY INVESTMENT(HK) LIMITED", "功能定位": "分销商", "税率": "0.165", "营收净额": "422523399.59999996", "营业总成本": "419193718.59000003", "毛利润": "3329681.009999931", "息税前利润": "6867622.2299999595", "利润总额": "-16711233.360000074", "NCP": "0.016281453595018477", "OM": "0.016253826975030236", "指标选择": "OM", "Q1": "0.0088", "中位值": "0.0193", "Q3": "0.0251", "比较结论": "在四分位区间内", "下四分位基准": "0.0088", "应留存利润": "3711896.807696", "利润增加额": "0", "应计提税金": "0"}, {"col": 14, "country": "HK", "name": "LY.LY1014 - TLG INVESTMENT(HK)LIMITED", "功能定位": "分销商", "税率": "0.165", "营收净额": "1140011651.33", "营业总成本": "1094957311.81", "毛利润": "45054339.51999998", "息税前利润": "23019466.619999886", "利润总额": "38100811.02999978", "NCP": "0.020481031149326364", "OM": "0.02019230820416977", "指标选择": "OM", "Q1": "0.0088", "中位值": "0.0193", "Q3": "0.0251", "比较结论": "在四分位区间内", "下四分位基准": "0.0088", "应留存利润": "9890679.076608002", "利润增加额": "0", "应计提税金": "0"}, {"col": 15, "country": "USA", "name": "LY.LY1016 - TRIUMPH LEAD GROUP USA, INC.", "功能定位": "制造商/服务提供商", "税率": "0.21", "营收净额": "11771517.87", "营业总成本": "0", "毛利润": "11771517.87", "息税前利润": "2028563.1599999946", "利润总额": "-2614755.4800000004", "NCP": "0.20820820997124329", "OM": "0.17232808737179403", "指标选择": "NCP", "Q1": "0.033", "中位值": "0.067", "Q3": "0.103", "比较结论": "高于四分位区间", "下四分位基准": "0.033", "应留存利润": "388460.08971", "利润增加额": "0", "应计提税金": "0"}, {"col": 16, "country": "CN", "name": "LY.LY1017 - 东莞市鑫焱精密刀具有限公司", "功能定位": "制造商/服务提供商", "税率": "0.25", "营收净额": "1093310.3800000001", "营业总成本": "673971.7100000001", "毛利润": "418722.75000000006", "息税前利润": "-118528.91999999993", "利润总额": "-242812.57000000007", "NCP": "-0.0978091071976292", "OM": "-0.1084128735702664", "指标选择": "NCP", "Q1": null, "中位值": null, "Q3": null, "比较结论": "低于四分位区间", "下四分位基准": "0", "应留存利润": "0", "利润增加额": "118528.91999999993", "应计提税金": "0"}, {"col": 17, "country": null, "name": "LY.LY1018 - 领镒精密五金制造（无锡）有限公司", "功能定位": null, "税率": null, "营收净额": "0", "营业总成本": "0", "毛利润": "0", "息税前利润": "0", "利润总额": "0", "NCP": null, "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 18, "country": "BVI", "name": "LY.LY1019 - TRIUMPH LEAD GROUP LIMITED", "功能定位": null, "税率": "0.21", "营收净额": "0", "营业总成本": "0", "毛利润": "0", "息税前利润": "0", "利润总额": "-223.56", "NCP": null, "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 19, "country": "HK", "name": "LY.LY1020 - HONG KONG CRYSTALYTE LIMITED", "功能定位": null, "税率": "0.165", "营收净额": "0", "营业总成本": "0", "毛利润": "0", "息税前利润": "0", "利润总额": "-34.24000000000001", "NCP": null, "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 20, "country": "CN", "name": "LY.LY1021 - 东莞领汇精密制造科技有限公司", "功能定位": "制造商/服务提供商", "税率": "0.25", "营收净额": "3047786.81", "营业总成本": "431727.61", "毛利润": "2175631.1500000004", "息税前利润": "1612681.24", "利润总额": "1612797.9999999995", "NCP": "1.1237370084209206", "OM": "0.5291319047345047", "指标选择": "NCP", "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "0", "利润增加额": "0", "应计提税金": "0"}, {"col": 21, "country": "VN", "name": "LY.LY1023 - LY INVESTMENT VIETNAM LT.", "功能定位": null, "税率": null, "营收净额": "0", "营业总成本": "0", "毛利润": "0", "息税前利润": "0", "利润总额": "0", "NCP": null, "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 22, "country": "CN", "name": "LY.LY1024 - 深圳市领滔科技有限公司", "功能定位": "制造商/服务提供商", "税率": "0.25", "营收净额": "71286425.72999999", "营业总成本": "52682723.93000001", "毛利润": "18328278.799999982", "息税前利润": "11030279.539999984", "利润总额": "7679888.470000014", "NCP": "0.18305650522718872", "OM": "0.15473183606900956", "指标选择": "NCP", "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "0", "利润增加额": "0", "应计提税金": "0"}, {"col": 23, "country": "CN", "name": "LY.LY1025 - 苏州领略智能科技有限公司", "功能定位": "制造商/服务提供商", "税率": "0.25", "营收净额": "30853362.26", "营业总成本": "34612228.550000004", "毛利润": "-3342168.3400000026", "息税前利润": "-17834631.200000007", "利润总额": "-19849333.370000005", "NCP": "-0.3663045020463245", "OM": "-0.5780449809556674", "指标选择": "NCP", "Q1": "-0.0174", "中位值": "0.0058", "Q3": "0.0463", "比较结论": "低于四分位区间", "下四分位基准": "-0.0174", "应留存利润": "-536848.503324", "利润增加额": "17297782.69667601", "应计提税金": "-134212.12583099958"}, {"col": 24, "country": "CN", "name": "LY.LY1026 - 东莞领博实业有限公司", "功能定位": "制造商/服务提供商", "税率": "0.25", "营收净额": "97191927.61000001", "营业总成本": "72369645.51", "毛利润": "24777973.01000001", "息税前利润": "13552581.950000003", "利润总额": "16068845.820000017", "NCP": "0.1620359633741305", "OM": "0.13944143596351088", "指标选择": "NCP", "Q1": "-0.008", "中位值": "0.045", "Q3": "0.0746", "比较结论": "高于四分位区间", "下四分位基准": "-0.008", "应留存利润": "-777535.4208800001", "利润增加额": "0", "应计提税金": "0"}, {"col": 25, "country": "CN", "name": "LY.LY1029 - 东莞盛涛科技有限公司", "功能定位": "制造商/服务提供商", "税率": "0.25", "营收净额": "51542034.56000001", "营业总成本": "58027744.089999996", "毛利润": "-6519977.0199999865", "息税前利润": "-13716422.159999989", "利润总额": "-17588061.339999996", "NCP": "-0.21018612528414676", "OM": "-0.26612108499583426", "指标选择": "NCP", "Q1": "0.0081", "中位值": "0.0361", "Q3": "0.0535", "比较结论": "低于四分位区间", "下四分位基准": "0.0081", "应留存利润": "417490.4799360001", "利润增加额": "14133912.639935989", "应计提税金": "104372.61998399999"}, {"col": 26, "country": "CN", "name": "LY.LY1030 - 扬州领煌科技有限公司", "功能定位": "制造商/服务提供商", "税率": "0.25", "营收净额": "74076333.00999999", "营业总成本": "76325162.89000002", "毛利润": "-2599795.220000025", "息税前利润": "-20119087.760000035", "利润总额": "-23259025.329999987", "NCP": "-0.21358880925990506", "OM": "-0.2715994021637659", "指标选择": "NCP", "Q1": "0.0066", "中位值": "0.0453", "Q3": "0.051", "比较结论": "低于四分位区间", "下四分位基准": "0.0066", "应留存利润": "488903.7978659999", "利润增加额": "20607991.557866037", "应计提税金": "122225.94946650043"}, {"col": 27, "country": "CN", "name": "LY.LY1031 - 东台领裕智能科技有限公司", "功能定位": "制造商/服务提供商", "税率": "0.25", "营收净额": "418764727.83", "营业总成本": "373858060.62999994", "毛利润": "44656626.56000005", "息税前利润": "25398590.51000005", "利润总额": "21547714.290000077", "NCP": "0.06456730282642127", "OM": "0.06065121731147987", "指标选择": "NCP", "Q1": "-0.0002", "中位值": "0.0206", "Q3": "0.0443", "比较结论": "高于四分位区间", "下四分位基准": "-0.0002", "应留存利润": "-83752.945566", "利润增加额": "0", "应计提税金": "0"}, {"col": 28, "country": "CN", "name": "LY.LY1032 - 镒韬科技（东莞）有限公司", "功能定位": "制造商/服务提供商", "税率": "0.25", "营收净额": "1246352.11", "营业总成本": "1197090.6400000001", "毛利润": "25253.739999999972", "息税前利润": "15375.379999999888", "利润总额": "27717.10000000006", "NCP": "0.012490390456040452", "OM": "0.012336305187464149", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "0", "利润增加额": "0", "应计提税金": "0"}, {"col": 29, "country": "SG", "name": "LY.JF1038 - Triumph Lead (Singapore) Pte. Ltd", "功能定位": "分销商", "税率": "0.1", "营收净额": "1515844205.03", "营业总成本": "1480988526.96", "毛利润": "34859026.49999993", "息税前利润": "55572587.48000002", "利润总额": "58627308.85000011", "NCP": "0.03734073022707541", "OM": "0.03666114716512056", "指标选择": "OM", "Q1": "0.018", "中位值": "0.025", "Q3": "0.0456", "比较结论": "在四分位区间内", "下四分位基准": "0.018", "应留存利润": "26788618.448459998", "利润增加额": "0", "应计提税金": "0"}, {"col": 30, "country": "CN", "name": "LY.JF1042 - 深圳市领鹏智能科技有限公司", "功能定位": "制造商/服务提供商", "税率": "0.25", "营收净额": "2891934.52", "营业总成本": "1966001.33", "毛利润": "922743.8899999999", "息税前利润": "-1521334.44", "利润总额": "-1504765.260000001", "NCP": "-0.3447182697879351", "OM": "-0.526061164068127", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "0", "利润增加额": "1521334.44", "应计提税金": "0"}, {"col": 31, "country": "CN", "name": "LY.LY1038 - 东莞领睿科技有限公司", "功能定位": null, "税率": "0.25", "营收净额": "18381873.310000006", "营业总成本": "23114875.679999996", "毛利润": "-5793631.58999999", "息税前利润": "-19884422.549999993", "利润总额": "-21936971.859999996", "NCP": "-0.5196328022641278", "OM": "-1.0817408114320197", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 32, "country": "USA", "name": "LY.LY1039 - Salcomp Energy USA Inc.", "功能定位": "制造商/服务提供商", "税率": "0.21", "营收净额": "3072981.96", "营业总成本": "3088066.1000000006", "毛利润": "-15084.140000000596", "息税前利润": "-23451.900000000373", "利润总额": "-301951.9500000009", "NCP": "-0.007573841735473197", "OM": "-0.00763164258862111", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "0", "利润增加额": "23451.900000000373", "应计提税金": "0"}, {"col": 33, "country": "USA", "name": "LY.LY1040 - Salcomp Manufacturing USA Corp.", "功能定位": "制造商/服务提供商", "税率": "0.21", "营收净额": "124512766.91999996", "营业总成本": "106131038.66000003", "毛利润": "18381365.65999993", "息税前利润": "7308414.47999993", "利润总额": "24182115.989999853", "NCP": "0.0623561696118862", "OM": "0.0586961053134063", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "0", "利润增加额": "0", "应计提税金": "0"}, {"col": 34, "country": "VN", "name": "LY.LY1041 - LINGYI VIETNAM COMPANY LIMITED", "功能定位": "制造商/服务提供商", "税率": "0.2", "营收净额": "102567847.33", "营业总成本": "85921351.88", "毛利润": "16618925.230000002", "息税前利润": "7445761.170000002", "利润总额": "-5443982.190000011", "NCP": "0.07827583971903085", "OM": "0.07259352091152055", "指标选择": null, "Q1": "0.0149", "中位值": "0.025", "Q3": "0.0268", "比较结论": "高于四分位区间", "下四分位基准": "0.0149", "应留存利润": "1528260.925217", "利润增加额": "0", "应计提税金": "0"}, {"col": 35, "country": "FI", "name": "LY.Sal1016 - Triumph Lead(Finland)Pte.Ltd Oy", "功能定位": null, "税率": "0.2", "营收净额": "0", "营业总成本": "0", "毛利润": "0", "息税前利润": "0", "利润总额": "128623.23000000417", "NCP": null, "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 36, "country": "CN", "name": "LY.LY1042 - 扬州领滔科技有限公司", "功能定位": null, "税率": "0.25", "营收净额": "0", "营业总成本": "0", "毛利润": "0", "息税前利润": "0", "利润总额": "0", "NCP": null, "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 37, "country": "CN", "name": "LY.LY1043 - 深圳市华之益自动化技术有限公司（合并）", "功能定位": "分销商", "税率": "0.25", "营收净额": "10431609.219999999", "营业总成本": "10227298.46", "毛利润": "200438.2599999979", "息税前利润": "-279597.7600000035", "利润总额": "-366654.780000001", "NCP": "-0.0261032916759119", "OM": "-0.026802936546352293", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "0", "利润增加额": "279597.7600000035", "应计提税金": "0"}, {"col": 38, "country": "CN", "name": "LY.LY1044 - 东台领滔电子有限公司", "功能定位": null, "税率": "0.25", "营收净额": "0", "营业总成本": "0", "毛利润": "0", "息税前利润": "0", "利润总额": "-75", "NCP": null, "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 39, "country": "CN", "name": "LY.LY1045 - 智联精密科技东台有限公司", "功能定位": null, "税率": null, "营收净额": "0", "营业总成本": "0", "毛利润": "0", "息税前利润": "0", "利润总额": "0", "NCP": null, "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 40, "country": "CN", "name": "LY.LY1046 - 深圳市领益亮彩贸易有限公司", "功能定位": "分销商", "税率": "0.25", "营收净额": "26724846.819999997", "营业总成本": "26330181.9", "毛利润": "376085.72999999806", "息税前利润": "167867.3299999982", "利润总额": "168134.23999999816", "NCP": "0.006321024951772413", "OM": "0.006281320567733687", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "0", "利润增加额": "0", "应计提税金": "0"}, {"col": 41, "country": "CN", "name": "JF.JF1001 - 广东领益智造股份有限公司", "功能定位": "分销商", "税率": "0.25", "营收净额": "308149688.19", "营业总成本": "292891346.3000001", "毛利润": "14462593.489999926", "息税前利润": "19806622.869999945", "利润总额": "63316154.05999999", "NCP": "0.0671226171289082", "OM": "0.0642759789449714", "指标选择": "OM", "Q1": "0.0088", "中位值": "0.0193", "Q3": "0.0251", "比较结论": "高于四分位区间", "下四分位基准": "0.0088", "应留存利润": "2596714.6203680006", "利润增加额": "0", "应计提税金": "0"}, {"col": 42, "country": "CN", "name": "JF.JF1002 - 江门江益磁材有限公司", "功能定位": "制造商/服务提供商", "税率": "0.25", "营收净额": "50345260.379999995", "营业总成本": "39690712.48", "毛利润": "10333299.569999998", "息税前利润": "5716339.099999994", "利润总额": "3663130.1399999848", "NCP": "0.12808597958565746", "OM": "0.11354274576899098", "指标选择": "NCP", "Q1": "0.0405", "中位值": "0.0536", "Q3": "0.0616", "比较结论": "高于四分位区间", "下四分位基准": "0.0405", "应留存利润": "2038983.0453899999", "利润增加额": "0", "应计提税金": "0"}, {"col": 43, "country": "CN", "name": "JF.JF1003 - 鹤山市江粉磁材新材料有限公司", "功能定位": "制造商/服务提供商", "税率": "0.25", "营收净额": "1171286.53", "营业总成本": "710684.8", "毛利润": "385762.89", "息税前利润": "299510.12", "利润总额": "267275.41000000003", "NCP": "0.34356300143519597", "OM": "0.25571037686226955", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "0", "利润增加额": "0", "应计提税金": "0"}, {"col": 44, "country": "HK", "name": "JF.JF1004 - 江粉磁材国际控股有限公司", "功能定位": null, "税率": "0.165", "营收净额": "0", "营业总成本": "0", "毛利润": "0", "息税前利润": "0", "利润总额": "-1833380.3800000004", "NCP": null, "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 45, "country": "CN", "name": "JF.JF1005 - 江门安磁电子有限公司", "功能定位": "制造商/服务提供商", "税率": "0.25", "营收净额": "31852143.549999997", "营业总成本": "27832348.049999993", "毛利润": "3898077.5900000036", "息税前利润": "441482.5300000012", "利润总额": "-1046837.3799999976", "NCP": "0.014055181128435904", "OM": "0.013860371102088709", "指标选择": "NCP", "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "0", "利润增加额": "0", "应计提税金": "0"}, {"col": 46, "country": "CN", "name": "JF.JF1006 - 江门恩富信电子材料有限公司", "功能定位": null, "税率": "0.25", "营收净额": "0", "营业总成本": "0", "毛利润": "0", "息税前利润": "0", "利润总额": "-1.3399999999674037", "NCP": null, "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 47, "country": "CN", "name": "JF.JF1007 - 江门创富投资管理有限公司", "功能定位": null, "税率": "0.25", "营收净额": "0", "营业总成本": "0", "毛利润": "0", "息税前利润": "0", "利润总额": "-409152.34", "NCP": null, "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 48, "country": "CN", "name": "JF.JF1009 - 江门江菱电机电气有限公司", "功能定位": null, "税率": "0.25", "营收净额": "0", "营业总成本": "0", "毛利润": "0", "息税前利润": "0", "利润总额": "0", "NCP": null, "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 49, "country": "CN", "name": "JF.JF1011 - 江门市正熙机械设备有限公司", "功能定位": null, "税率": "0.25", "营收净额": "400194.48", "营业总成本": "178927.51", "毛利润": "186376.76999999996", "息税前利润": "186376.76999999996", "利润总额": "186376.76999999996", "NCP": "0.8716619872133133", "OM": "0.4657154941267555", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 50, "country": "CN", "name": "JF.JF1012 - 鹤山市高磁电子有限公司", "功能定位": null, "税率": "0.25", "营收净额": "0", "营业总成本": "0", "毛利润": "0", "息税前利润": "0", "利润总额": "0", "NCP": null, "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 51, "country": "CN", "name": "JF.JF1013 - 深圳前海方圆商业保理有限公司", "功能定位": null, "税率": "0.25", "营收净额": "1484051.38", "营业总成本": "838489.57", "毛利润": "637335.8999999999", "息税前利润": "425073.67999999993", "利润总额": "425864.71999999986", "NCP": "0.40140002948126285", "OM": "0.28642787286785176", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 52, "country": "CN", "name": "JF.JF1014 - 鹤山市江磁线缆有限公司", "功能定位": null, "税率": "0.25", "营收净额": "0", "营业总成本": "0", "毛利润": "0", "息税前利润": "0", "利润总额": "0", "NCP": null, "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 53, "country": "CN", "name": "JF.JF1015 - 江门金磁磁材有限公司", "功能定位": null, "税率": "0.25", "营收净额": "0", "营业总成本": "0", "毛利润": "0", "息税前利润": "0", "利润总额": "-60", "NCP": null, "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 54, "country": "CN", "name": "JF.JF1017 - 江粉磁材（武汉）技术研发有限公司", "功能定位": null, "税率": "0.25", "营收净额": "0", "营业总成本": "0", "毛利润": "-13023.289999999999", "息税前利润": "-85748.54999999999", "利润总额": "-85748.54999999999", "NCP": "-1", "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 55, "country": "FR", "name": "JF.JF1023 - STEELMAG INTERNATIONAL SAS", "功能定位": null, "税率": "0.25", "营收净额": "0", "营业总成本": "0", "毛利润": "0", "息税前利润": "0", "利润总额": "0", "NCP": null, "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 56, "country": "CN", "name": "JF.JF1025 - 领潮（广州）私募股权投资基金管理有限公司", "功能定位": null, "税率": "0.25", "营收净额": "51213.92", "营业总成本": "0", "毛利润": "51213.92", "息税前利润": "3132.429999999993", "利润总额": "2772.4299999999994", "NCP": "0.06514835542742109", "OM": "0.06116364457163195", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 57, "country": "CN", "name": "JF.JF1028 - 郑州领业科技有限公司", "功能定位": null, "税率": "0.25", "营收净额": "0", "营业总成本": "0", "毛利润": "-164786.68", "息税前利润": "-921264.47", "利润总额": "-921804.4700000001", "NCP": "-1", "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 58, "country": "CN", "name": "JF.JF1033 - 领先科技（东台）有限公司", "功能定位": null, "税率": "0.25", "营收净额": "313712781.31", "营业总成本": "301585527.93999994", "毛利润": "11672658.530000065", "息税前利润": "11487771.620000124", "利润总额": "17789148.10000003", "NCP": "0.038010658455378765", "OM": "0.03661875544894777", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 59, "country": null, "name": "JF.JF1045 - 领益企业管理（海南）有限公司", "功能定位": null, "税率": null, "营收净额": "0", "营业总成本": "0", "毛利润": "0", "息税前利润": "0", "利润总额": "0", "NCP": null, "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 60, "country": "CN", "name": "JF.JF1047 - 广州领宇股权投资合伙企业（有限合伙）", "功能定位": null, "税率": "0.25", "营收净额": "0", "营业总成本": "0", "毛利润": "0", "息税前利润": "-51726.06", "利润总额": "-51798.78", "NCP": "-1", "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 61, "country": "CN", "name": "LC.LC1001 - 深圳市东方亮彩精密技术有限公司", "功能定位": "分销商", "税率": "0.25", "营收净额": "11320945.389999999", "营业总成本": "12693889.22", "毛利润": "-1386800.660000002", "息税前利润": "-5287429.750000002", "利润总额": "-4749426.860000001", "NCP": "-0.3168639612650185", "OM": "-0.4670484281878514", "指标选择": "OM", "Q1": "0.0042", "中位值": "0.013", "Q3": "0.019", "比较结论": "低于四分位区间", "下四分位基准": "0.0042", "应留存利润": "70084.350588", "利润增加额": "5357514.100588002", "应计提税金": "17521.087647000095"}, {"col": 62, "country": "CN", "name": "LC.LC1002 - 领益智造科技（东莞）有限公司", "功能定位": "制造商/服务提供商", "税率": "0.25", "营收净额": "114772281.31", "营业总成本": "122369988.78", "毛利润": "-8012905.599999999", "息税前利润": "-24235839.01999998", "利润总额": "-21453368.830000013", "NCP": "-0.17434836873173323", "OM": "-0.21116456642121598", "指标选择": "NCP", "Q1": "0.0098", "中位值": "0.0483", "Q3": "0.0614", "比较结论": "低于四分位区间", "下四分位基准": "0.0098", "应留存利润": "1124768.356838", "利润增加额": "25360607.37683798", "应计提税金": "281192.08920949977"}, {"col": 63, "country": "CN", "name": "LC.LC1003 - 东莞市欧比迪精密五金有限公司", "功能定位": "制造商/服务提供商", "税率": "0.25", "营收净额": "187882707.93000004", "营业总成本": "166711320.33000004", "毛利润": "20707205.459999993", "息税前利润": "16527491.150000006", "利润总额": "12583534.290000027", "NCP": "0.09645163690125269", "OM": "0.08796706909375449", "指标选择": "NCP", "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "0", "利润增加额": "0", "应计提税金": "0"}, {"col": 64, "country": "CN", "name": "LC.LC1005 - 苏州领镒精密技术有限公司", "功能定位": null, "税率": "0.25", "营收净额": "1742693.3399999999", "营业总成本": "1545223.3499999999", "毛利润": "49005.94", "息税前利润": "-736252.3200000003", "利润总额": "-801839.6199999998", "NCP": "-0.29700220213782347", "OM": "-0.42247956258328295", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 65, "country": "HK", "name": "LC.LC1007 - LingYi iTech Investment(HK) Limited", "功能定位": null, "税率": "0.165", "营收净额": "0", "营业总成本": "0", "毛利润": "0", "息税前利润": "0", "利润总额": "-525.279999999893", "NCP": null, "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 66, "country": "CN", "name": "LC.LC1008 - 桂林领益制造有限公司", "功能定位": null, "税率": "0.25", "营收净额": "115447900.46", "营业总成本": "120795093.69", "毛利润": "-5438282.450000004", "息税前利润": "-18317829.5", "利润总额": "-18588616.86", "NCP": "-0.13693962949611674", "OM": "-0.1586674978671154", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 67, "country": "FI", "name": "Salcomp.Sal1001 - Parent Salcomp Plc, Salo", "功能定位": "分销商", "税率": "0.2", "营收净额": "775573847.2099997", "营业总成本": "739151199.55", "毛利润": "36422647.65999973", "息税前利润": "35312395.7099998", "利润总额": "36546227.55999978", "NCP": "0.04770259972128213", "OM": "0.04553066846829658", "指标选择": null, "Q1": "0.089", "中位值": "0.22", "Q3": "0.31", "比较结论": "低于四分位区间", "下四分位基准": "0.089", "应留存利润": "65883269.183499984", "利润增加额": "30570873.473500185", "应计提税金": "6114174.694700037"}, {"col": 68, "country": "FI", "name": "Salcomp.Sal1002 - Salcomp Manufacturing Oy, Salo", "功能定位": null, "税率": "0.2", "营收净额": "1112780.04", "营业总成本": "0", "毛利润": "1112780.04", "息税前利润": "-92339.61000000034", "利润总额": "-3004546.5400000135", "NCP": "-0.0766227735146467", "OM": "-0.08298100853786013", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 69, "country": "TW", "name": "Salcomp.Sal1003 - Salcomp Taiwan Co.Ltd (Taiwan)", "功能定位": "制造商/服务提供商", "税率": "0.2", "营收净额": "14367127.16", "营业总成本": "460671.15", "毛利润": "13906456.01", "息税前利润": "684306.8200000022", "利润总额": "698423.6699999961", "NCP": "0.05001211760411101", "OM": "0.047630038516343315", "指标选择": null, "Q1": "0.0419", "中位值": "0.0603", "Q3": "0.075", "比较结论": "在四分位区间内", "下四分位基准": "0.0419", "应留存利润": "601982.628004", "利润增加额": "0", "应计提税金": "0"}, {"col": 70, "country": "USA", "name": "Salcomp.Sal1004 - Salcomp USA (USA)", "功能定位": null, "税率": "0.21", "营收净额": "0", "营业总成本": "0", "毛利润": "0", "息税前利润": "0", "利润总额": "0", "NCP": null, "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 71, "country": "CN", "name": "Salcomp.Sal1006 - Salcomp （Shenzhen）Co.Ltd（China）", "功能定位": "制造商/服务提供商", "税率": "0.25", "营收净额": "522205747.99999994", "营业总成本": "498891380.4799999", "毛利润": "22542512.92000004", "息税前利润": "-20730849.619999945", "利润总额": "-20905501.169999268", "NCP": "-0.038182818603267964", "OM": "-0.03969862396076105", "指标选择": "NCP", "Q1": "0.0113", "中位值": "0.0332", "Q3": "0.097", "比较结论": "低于四分位区间", "下四分位基准": "0.0113", "应留存利润": "5900924.952399999", "利润增加额": "26631774.572399944", "应计提税金": "1475231.2380999997"}, {"col": 72, "country": "CN", "name": "Salcomp.Sal1007 - Salcomp （Guigang）Co.Ltd（China）", "功能定位": "制造商/服务提供商", "税率": "0.25", "营收净额": "28545723.09", "营业总成本": "28794759.9", "毛利润": "-384829.5999999987", "息税前利润": "-439914.9999999963", "利润总额": "1198244.2099999993", "NCP": "-0.01517699898943285", "OM": "-0.015410890052181063", "指标选择": "NCP", "Q1": "0.0113", "中位值": "0.0332", "Q3": "0.097", "比较结论": "低于四分位区间", "下四分位基准": "0.0113", "应留存利润": "322566.670917", "利润增加额": "762481.6709169962", "应计提税金": "80641.66772924998"}, {"col": 73, "country": "IN", "name": "Salcomp.Sal1008 - Salcomp Manufacturing India（India）", "功能定位": "制造商/服务提供商", "税率": "0.2517", "营收净额": "242561760.95000005", "营业总成本": "220349227.24000007", "毛利润": "22194230.039999977", "息税前利润": "18309113.159999967", "利润总额": "22253086.429999948", "NCP": "0.08164502555682382", "OM": "0.07548227341478642", "指标选择": "NCP", "Q1": "0.0197", "中位值": "0.0287", "Q3": "0.0379", "比较结论": "高于四分位区间", "下四分位基准": "0.0197", "应留存利润": "4778466.690715001", "利润增加额": "0", "应计提税金": "0"}, {"col": 74, "country": "BR", "name": "Salcomp.Sal1009 - Salcomp Industrial Electronica da Amazonia Ltda （Brazil）", "功能定位": "制造商/服务提供商", "税率": "0.34", "营收净额": "147889395.97999996", "营业总成本": "134500796.30000004", "毛利润": "13388599.679999918", "息税前利润": "9080785.329999924", "利润总额": "8165508.549999969", "NCP": "0.06449450567795591", "OM": "0.061402545259079816", "指标选择": "NCP", "Q1": "0.0236", "中位值": "0.0501", "Q3": "0.0667", "比较结论": "在四分位区间内", "下四分位基准": "0.0236", "应留存利润": "3537171.505543999", "利润增加额": "0", "应计提税金": "0"}, {"col": 75, "country": "KR", "name": "Salcomp.Sal1011 - Salcomp Korea Ltd (Korea)", "功能定位": null, "税率": "0.099", "营收净额": "396590.12", "营业总成本": "0", "毛利润": "396590.12", "息税前利润": "-729766.6100000007", "利润总额": "-725677.6399999997", "NCP": "-0.6479000751387176", "OM": "-1.8401028497633796", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 76, "country": "IN", "name": "Salcomp.Sal1012 - Salcomp LOM india", "功能定位": null, "税率": "0.2517", "营收净额": "3100.02", "营业总成本": "2475.46", "毛利润": "624.56", "息税前利润": "-22100.989999999998", "利润总额": "2443772.5399999996", "NCP": "-0.8769882635656269", "OM": "-7.129305617383113", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 77, "country": "IN", "name": "Salcomp.Sal1013 - Salcomp Technologies India Private Limited", "功能定位": "制造商/服务提供商", "税率": "0.1716", "营收净额": "963432220.7400002", "营业总成本": "972351663.5700004", "毛利润": "-9038817.700000161", "息税前利润": "-14268839.630000114", "利润总额": "-83707891.10999985", "NCP": "-0.014594276521087362", "OM": "-0.014810423943513533", "指标选择": "NCP", "Q1": "0.018", "中位值": "0.0296", "Q3": null, "比较结论": "低于四分位区间", "下四分位基准": "0.018", "应留存利润": "17341779.973320004", "利润增加额": "31610619.603320118", "应计提税金": "2975849.4434217126"}, {"col": 78, "country": "CN", "name": "Salcomp.Sal1014 - 桂林赛尔康电子技术有限公司", "功能定位": "制造商/服务提供商", "税率": "0.25", "营收净额": "93583275.37999998", "营业总成本": "101718222.12", "毛利润": "-8198868.870000024", "息税前利润": "-10618850.200000018", "利润总额": "-15634069.959999988", "NCP": "-0.10190627245744154", "OM": "-0.11346952921749745", "指标选择": "NCP", "Q1": "0.0113", "中位值": "0.0332", "Q3": "0.097", "比较结论": "低于四分位区间", "下四分位基准": "0.0113", "应留存利润": "1057491.0117939997", "利润增加额": "11676341.211794017", "应计提税金": "264372.75294849975"}, {"col": 79, "country": "BR", "name": "Salcomp.Sal1015 - Valor Log Armazem Geral Ltda", "功能定位": "制造商/服务提供商", "税率": "0.34", "营收净额": "3400828.73", "营业总成本": "3057756.54", "毛利润": "343072.18999999994", "息税前利润": "-299436.8700000001", "利润总额": "-325302.47000000015", "NCP": "-0.08092307481927787", "OM": "-0.08804820641467591", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "0", "利润增加额": "299436.8700000001", "应计提税金": "0"}, {"col": 80, "country": "CN", "name": "LT.JF1032 - 成都领泰科技有限公司", "功能定位": "制造商/服务提供商", "税率": "0.25", "营收净额": "6720974.79", "营业总成本": "3640753.2700000005", "毛利润": "2582181.9499999997", "息税前利润": "1037106.6200000001", "利润总额": "2352849.880000001", "NCP": "0.17714782894354758", "OM": "0.15430895850749057", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "0", "利润增加额": "0", "应计提税金": "0"}, {"col": 81, "country": "CN", "name": "LT.JF1034 - 绵阳市维奇电子技术有限公司", "功能定位": null, "税率": "0.25", "营收净额": "3473906.33", "营业总成本": "2421176.61", "毛利润": "979841.7800000003", "息税前利润": "-946064.6299999999", "利润总额": "-1129820.9599999993", "NCP": "-0.21404317778594634", "OM": "-0.2723345249208259", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 82, "country": "CN", "name": "LT.JF1035 - 绵阳领益通信技术有限公司", "功能定位": null, "税率": "0.25", "营收净额": "0", "营业总成本": "0", "毛利润": "0", "息税前利润": "0", "利润总额": "0", "NCP": null, "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 83, "country": "CN", "name": "LT.LT1001 - 深圳智成通信有限公司", "功能定位": null, "税率": null, "营收净额": "0", "营业总成本": "0", "毛利润": "0", "息税前利润": "0", "利润总额": "0", "NCP": null, "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 84, "country": "CN", "name": "LT.LT1002 - 黄山领益通信技术有限公司", "功能定位": null, "税率": "0.25", "营收净额": "0", "营业总成本": "0", "毛利润": "0", "息税前利润": "0", "利润总额": "0", "NCP": null, "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 85, "country": "CN", "name": "LT.LT1003 - 成都领益通信技术有限公司", "功能定位": null, "税率": "0.25", "营收净额": "0", "营业总成本": "33.96", "毛利润": "-33.97", "息税前利润": "-214.91", "利润总额": "895.64", "NCP": "-1", "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 86, "country": "CN", "name": "LT.LT1004 - 珠海领益通信技术有限公司", "功能定位": null, "税率": "0.25", "营收净额": "7173118.14", "营业总成本": "6228320.37", "毛利润": "941505.1899999996", "息税前利润": "-130053.95000000019", "利润总额": "-864301.8100000008", "NCP": "-0.01780787148341731", "OM": "-0.018130741396098098", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 87, "country": "CN", "name": "FATP.JF1048 - 深圳市领懿科技发展有限公司（合并）", "功能定位": "制造商/服务提供商", "税率": "0.25", "营收净额": "2109703.61", "营业总成本": "4073253.13", "毛利润": "-1967609.25", "息税前利润": "-2603682.7600000002", "利润总额": "-2289112.650000001", "NCP": "-0.5524017247073255", "OM": "-1.234146231564727", "指标选择": "BR", "Q1": "1.06", "中位值": "1.21", "Q3": "1.6", "比较结论": null, "下四分位基准": "1.06", "应留存利润": "2236285.8266", "利润增加额": "4839968.5866", "应计提税金": "559071.45665"}, {"col": 88, "country": "SG", "name": "FATP.JF1039 - SALCOMP HOLDINGS PTE. LTD", "功能定位": "分销商", "税率": "0.17", "营收净额": "681061685.48", "营业总成本": "679097911.2099999", "毛利润": "1963774.2700001001", "息税前利润": "1963774.2700001001", "利润总额": "298013.60000002856", "NCP": "0.0028917395232465016", "OM": "0.0028834014772333985", "指标选择": "BR", "Q1": "1.22", "中位值": "1.3", "Q3": "1.59", "比较结论": null, "下四分位基准": "1.22", "应留存利润": "828499451.6761999", "利润增加额": "826535677.4061998", "应计提税金": "140511065.15905398"}, {"col": 89, "country": "TR", "name": "FATP.JF1040 - Salcomp Turkey Co. ,Ltd", "功能定位": null, "税率": "0.24", "营收净额": "28517122.080000013", "营业总成本": "13258415.800000012", "毛利润": "15180099.090000002", "息税前利润": "12311249.490000002", "利润总额": "14764856.720000029", "NCP": "0.7596782846236109", "OM": "0.431714303268852", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 90, "country": "CN", "name": "FATP.JF1043 - 领懿实业（珠海）小合并", "功能定位": null, "税率": "0.25", "营收净额": "2487943.87", "营业总成本": "1983037.9400000002", "毛利润": "119248.95999999996", "息税前利润": "-4736.270000000019", "利润总额": "-149035.12000000005", "NCP": "-0.001900071302369352", "OM": "-0.0019036884461545423", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 91, "country": "CN", "name": "YL.JF1037 - 苏州益道医疗科技有限公司", "功能定位": null, "税率": null, "营收净额": "0", "营业总成本": "0", "毛利润": "0", "息税前利润": "0", "利润总额": "0", "NCP": null, "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 92, "country": "CN", "name": "QC.LY1027 - 浙江锦泰电子有限公司", "功能定位": "分销商", "税率": "0.25", "营收净额": "155419536.97", "营业总成本": "151641978.01000002", "毛利润": "3666760.1199999787", "息税前利润": "4398888.429999977", "利润总额": "10726930.610000018", "NCP": "0.028937431079210905", "OM": "0.028303317045971364", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "0", "利润增加额": "0", "应计提税金": "0"}, {"col": 93, "country": "CN", "name": "QC.LY1028 - 苏州领汇新能源科技有限公司", "功能定位": "制造商/服务提供商", "税率": "0.25", "营收净额": "200050239.69", "营业总成本": "171981996.17000002", "毛利润": "27944468.06999998", "息税前利润": "23246936.47999999", "利润总额": "19080565.10999994", "NCP": "0.13148474071430777", "OM": "0.1162054917605882", "指标选择": "NCP", "Q1": "0.0258", "中位值": "0.0384", "Q3": "0.0537", "比较结论": "高于四分位区间", "下四分位基准": "0.0258", "应留存利润": "5161296.184002", "利润增加额": "0", "应计提税金": "0"}, {"col": 94, "country": "CN", "name": "QC.LY1033 - 常州领晟新能源科技有限公司", "功能定位": "制造商/服务提供商", "税率": "0.25", "营收净额": "81676321.57000001", "营业总成本": "70721618.02", "毛利润": "10845697.150000012", "息税前利润": "7363458.640000001", "利润总额": "2804971.3399999994", "NCP": "0.09908726900935183", "OM": "0.09015414135281803", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "0", "利润增加额": "0", "应计提税金": "0"}, {"col": 95, "country": "CN", "name": "QC.LY1034 - 福建领福新能源科技有限公司", "功能定位": "制造商/服务提供商", "税率": "0.25", "营收净额": "55693970.85", "营业总成本": "49672382.150000006", "毛利润": "5983797.979999996", "息税前利润": "4327292.019999996", "利润总额": "1569424.9799999974", "NCP": "0.08424317317304736", "OM": "0.07769767452305829", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "0", "利润增加额": "0", "应计提税金": "0"}, {"col": 96, "country": "CN", "name": "QC.LY1035 - 荆门领福新能源科技有限责任公司", "功能定位": null, "税率": "0.25", "营收净额": "0", "营业总成本": "0", "毛利润": "0", "息税前利润": "0", "利润总额": "0", "NCP": null, "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 97, "country": "CN", "name": "QC.LY1036 - 扬州领晟新能源有限公司", "功能定位": null, "税率": "0.25", "营收净额": "245984765.25", "营业总成本": "245822716.57999998", "毛利润": "8624.120000016701", "息税前利润": "-13610.210000008345", "利润总额": "-18502.869999971364", "NCP": "-5.5326422276399956e-05", "OM": "-5.532948345876613e-05", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 98, "country": "CN", "name": "QC.JF1044 - 苏州领鼎新能源科技有限公司", "功能定位": null, "税率": "0.25", "营收净额": "0", "营业总成本": "0", "毛利润": "0", "息税前利润": "0", "利润总额": "-650", "NCP": null, "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 99, "country": "CN", "name": "QC.QC1001 - 成都领韬新能源科技有限公司", "功能定位": null, "税率": "0.25", "营收净额": "10345413.33", "营业总成本": "10997096.6", "毛利润": "-658782.3999999996", "息税前利润": "-705904.6300000008", "利润总额": "-1136357.3699999996", "NCP": "-0.0638751534029703", "OM": "-0.06823358405149393", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 100, "country": "CN", "name": "QC.QC1002 - 成都领福新能源科技有限公司", "功能定位": null, "税率": "0.25", "营收净额": "0", "营业总成本": "0", "毛利润": "0", "息税前利润": "0", "利润总额": "0", "NCP": null, "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 101, "country": "CN", "name": "QC.QC1003 - 扬州领汇新能源有限公司", "功能定位": "制造商/服务提供商", "税率": "0.25", "营收净额": "255523377.48000002", "营业总成本": "246610731.42999998", "毛利润": "8502816.960000042", "息税前利润": "1869717.5200000405", "利润总额": "-4228463.870000014", "NCP": "0.007371143472934261", "OM": "0.0073172072881917995", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "0", "利润增加额": "0", "应计提税金": "0"}, {"col": 102, "country": "CN", "name": "QC.QC1004 - 温州芯壳科技有限公司", "功能定位": null, "税率": "0.25", "营收净额": "6940160.36", "营业总成本": "6475418.68", "毛利润": "461834.82000000065", "息税前利润": "241606", "利润总额": "-5049.2499999994325", "NCP": "0.036068379386862214", "OM": "0.03481274026354054", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 103, "country": "SG", "name": "QC.QC1005 - LINGHUI SG NEW ENERGY PTE. LTD.", "功能定位": null, "税率": "0.17", "营收净额": "0", "营业总成本": "0", "毛利润": "0", "息税前利润": "-1178.11", "利润总额": "333.17999999999984", "NCP": "-1", "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 104, "country": "CN", "name": "LY.LY1047 - 苏州领页智能科技有限公司", "功能定位": null, "税率": "0.25", "营收净额": "969420.5900000001", "营业总成本": "1475730.08", "毛利润": "-444518.63", "息税前利润": "-3995620.0100000007", "利润总额": "-5154238.650000001", "NCP": "-0.804750722481504", "OM": "-4.121657876072139", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": "0", "应留存利润": "ERROR", "利润增加额": null, "应计提税金": null}, {"col": 105, "country": "CN", "name": "JY.JY1001 - 东莞捷盈精密硅胶科技有限公司", "功能定位": null, "税率": "0.25", "营收净额": "35957413.400000006", "营业总成本": "33704311.26", "毛利润": "2252562.460000008", "息税前利润": "-2035338.8299999982", "利润总额": "-5048277.559999995", "NCP": "-0.05357176594310651", "OM": "-0.05660415023067254", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": null, "应留存利润": null, "利润增加额": null, "应计提税金": null}, {"col": 106, "country": "HK", "name": "JY.JY1002 - ANSHUN (ASIA) INVESTMENT LIMITED", "功能定位": null, "税率": "0.165", "营收净额": "37428539.79", "营业总成本": "36281999.309999995", "毛利润": "1146131.6800000041", "息税前利润": "506913.26000000536", "利润总额": "1767207.4600000011", "NCP": "0.013729440104382245", "OM": "0.013543495494190781", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": null, "应留存利润": null, "利润增加额": null, "应计提税金": null}, {"col": 107, "country": "HK", "name": "JY.JY1003 - THE CARE LABS COMPANY LIMITED", "功能定位": null, "税率": "0.165", "营收净额": "0", "营业总成本": "0", "毛利润": "0", "息税前利润": "-375.3", "利润总额": "-1277.14", "NCP": "-1", "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": null, "应留存利润": null, "利润增加额": null, "应计提税金": null}, {"col": 108, "country": "CN", "name": "KD.KD1001 - 江苏科达斯特恩汽车科技股份有限公司", "功能定位": null, "税率": null, "营收净额": "81036629.11", "营业总成本": "73897712.98", "毛利润": "6115437.739999996", "息税前利润": "-4046605.7200000137", "利润总额": "-1407598.6500000006", "NCP": "-0.04756055324042753", "OM": "-0.049935513908248914", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": null, "应留存利润": null, "利润增加额": null, "应计提税金": null}, {"col": 109, "country": "CN", "name": "KD.KD1002 - 郑州市科达斯特恩汽车零部件有限公司", "功能定位": null, "税率": null, "营收净额": "31359440.71", "营业总成本": "26395864.529999997", "毛利润": "4764401.820000003", "息税前利润": "4256779.040000003", "利润总额": "3843327.7800000063", "NCP": "0.15706129131633745", "OM": "0.13574154843401232", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": null, "应留存利润": null, "利润增加额": null, "应计提税金": null}, {"col": 110, "country": "CN", "name": "KD.KD1003 - 沈阳科达斯特恩汽车部件有限公司", "功能定位": null, "税率": null, "营收净额": "0", "营业总成本": "0", "毛利润": "0", "息税前利润": "0", "利润总额": "-60", "NCP": null, "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": null, "应留存利润": null, "利润增加额": null, "应计提税金": null}, {"col": 111, "country": "CN", "name": "KD.KD1004 - 济南科恩汽车部件有限公司", "功能定位": null, "税率": null, "营收净额": "0", "营业总成本": "0", "毛利润": "0", "息税前利润": "-65237.24", "利润总额": "-65637.23999999999", "NCP": "-1", "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": null, "应留存利润": null, "利润增加额": null, "应计提税金": null}, {"col": 112, "country": "CN", "name": "KD.KD1005 - 常州科达汽车配件有限公司", "功能定位": null, "税率": null, "营收净额": "61588928.46", "营业总成本": "62113787.720000006", "毛利润": "-587586.6100000053", "息税前利润": "-685503.3300000057", "利润总额": "-233197.56999999593", "NCP": "-0.011007781368630383", "OM": "-0.011130301291817695", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": null, "应留存利润": null, "利润增加额": null, "应计提税金": null}, {"col": 113, "country": "CN", "name": "KD.KD1006 - 安庆科达汽车部件有限公司", "功能定位": null, "税率": null, "营收净额": "10361977.3", "营业总成本": "9158498.85", "毛利润": "1152390.400000001", "息税前利润": "947404.6600000001", "利润总额": "-235936.55999999918", "NCP": "0.10063172235505743", "OM": "0.09143087584258654", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": null, "应留存利润": null, "利润增加额": null, "应计提税金": null}, {"col": 114, "country": "CN", "name": "KD.KD1007 - 宁波斯特恩汽车饰件有限公司", "功能定位": null, "税率": null, "营收净额": "0", "营业总成本": "0", "毛利润": "0", "息税前利润": "0", "利润总额": "0", "NCP": null, "OM": null, "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": null, "应留存利润": null, "利润增加额": null, "应计提税金": null}, {"col": 115, "country": "CN", "name": "KD.KD1008 - 安徽科恩汽车部件有限公司", "功能定位": null, "税率": null, "营收净额": "18368931.01", "营业总成本": "15466263.58", "毛利润": "2618695.0800000015", "息税前利润": "1177489.25", "利润总额": "-441169.7300000006", "NCP": "0.06849275741024294", "OM": "0.06410221963156036", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": null, "应留存利润": null, "利润增加额": null, "应计提税金": null}, {"col": 116, "country": "CN", "name": "KD.KD1009 - 合肥斯特恩汽车部件有限公司", "功能定位": null, "税率": null, "营收净额": "4927481.4", "营业总成本": "4291510.66", "毛利润": "607848.7100000002", "息税前利润": "457882.11000000034", "利润总额": "356807.63000000035", "NCP": "0.10244365999977603", "OM": "0.09292416811558138", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": null, "应留存利润": null, "利润增加额": null, "应计提税金": null}, {"col": 117, "country": "CN", "name": "KD.KD1010 - 湘潭科达汽车饰件系统有限公司", "功能定位": null, "税率": null, "营收净额": "1051513.49", "营业总成本": "881057.62", "毛利润": "167823.88999999998", "息税前利润": "-82686.68999999994", "利润总额": "-351359.36000000004", "NCP": "-0.07290308312241667", "OM": "-0.0786358813142758", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": null, "应留存利润": null, "利润增加额": null, "应计提税金": null}, {"col": 118, "country": "CN", "name": "KD.KD1011 - 宁德科达斯特恩汽车内饰系统有限公司", "功能定位": null, "税率": null, "营收净额": "7057342.9", "营业总成本": "6913845.0600000005", "毛利润": "141569.52999999985", "息税前利润": "-147488.6099999994", "利润总额": "-442308.05000000034", "NCP": "-0.020470792383595855", "OM": "-0.020898603353961927", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": null, "应留存利润": null, "利润增加额": null, "应计提税金": null}, {"col": 119, "country": "CN", "name": "XL.XL1001 - 浙江向隆机械有限公司", "功能定位": null, "税率": null, "营收净额": "315599243.05", "营业总成本": "255866006.92000002", "毛利润": "57909701.35999999", "息税前利润": "34343623.73000002", "利润总额": "37424346.97000004", "NCP": "0.12210822245270551", "OM": "0.10882036153856997", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": null, "应留存利润": null, "利润增加额": null, "应计提税金": null}, {"col": 120, "country": "CN", "name": "XL.XL1002 - 宁波向隆汽车部件有限公司", "功能定位": null, "税率": null, "营收净额": "124548394.33000001", "营业总成本": "113812651.87", "毛利润": "10385061.650000008", "息税前利润": "8595096.470000014", "利润总额": "8667698.629999984", "NCP": "0.07412550249651013", "OM": "0.06901009455992409", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": null, "应留存利润": null, "利润增加额": null, "应计提税金": null}, {"col": 121, "country": "THA", "name": "XL.XL1003 - 向隆机械（泰国）有限公司", "功能定位": null, "税率": null, "营收净额": "33196534.41", "营业总成本": "29775379.81", "毛利润": "3421154.6000000015", "息税前利润": "1118896.120000001", "利润总额": "2850145.1199999987", "NCP": "0.034880875888821584", "OM": "0.033705208687776426", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": null, "应留存利润": null, "利润增加额": null, "应计提税金": null}, {"col": 122, "country": "CN", "name": "XL.XL1004 - 宁波隆俊进出口有限公司", "功能定位": null, "税率": null, "营收净额": "60661502.150000006", "营业总成本": "56624184.11", "毛利润": "4015518.1300000064", "息税前利润": "3584442.81000001", "利润总额": "-2102974.099999999", "NCP": "0.06280006103061458", "OM": "0.059089252375198714", "指标选择": null, "Q1": null, "中位值": null, "Q3": null, "比较结论": null, "下四分位基准": null, "应留存利润": null, "利润增加额": null, "应计提税金": null}]};
+
+let appData = null;
+let taxPage = 1, tpPage = 1;
+const PAGE_SIZE = 20;
+let taxCharts = {}, p2Charts = {}, tpCharts = {};
+
+// ============================================================
+// TAB SWITCHING
+// ============================================================
+function switchTab(tab) {
+  document.querySelectorAll('.nav-tab').forEach((t, i) => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  const tabs = ['upload', 'tax', 'pillar2', 'tp'];
+  document.querySelectorAll('.nav-tab')[tabs.indexOf(tab)].classList.add('active');
+  document.getElementById('section-' + tab).classList.add('active');
+}
+
+// ============================================================
+// FILE UPLOAD
+// ============================================================
+function handleDragOver(e) { e.preventDefault(); e.stopPropagation(); document.getElementById('dropZone').classList.add('dragover'); }
+function handleDragLeave(e) { document.getElementById('dropZone').classList.remove('dragover'); }
+function handleDrop(e) {
+  e.preventDefault(); e.stopPropagation();
+  document.getElementById('dropZone').classList.remove('dragover');
+  const files = e.dataTransfer.files;
+  if (files.length > 0) processFile(files[0]);
+}
+function handleFileSelect(e) { if (e.target.files.length > 0) processFile(e.target.files[0]); }
+
+function processFile(file) {
+  const status = document.getElementById('uploadStatus');
+  status.className = 'upload-status';
+  status.textContent = '正在解析文件...';
+  
+  if (!file.name.endsWith('.xlsx')) {
+    status.className = 'upload-status error';
+    status.textContent = '❌ 请上传 .xlsx 格式文件';
+    return;
+  }
+  
+  // Check if SheetJS is available
+  if (typeof XLSX === 'undefined') {
+    status.className = 'upload-status error';
+    status.innerHTML = '⚠️ 浏览器解析Excel需要SheetJS库。当前使用内置示例数据。<br><small>如需真实数据解析，请在本地服务器中运行或使用支持XLSX解析的环境。</small>';
+    loadEmbeddedData();
+    return;
+  }
+  
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type: 'array' });
+      const parsedData = parseWorkbook(wb);
+      appData = parsedData;
+      status.className = 'upload-status success';
+      status.textContent = '✅ 数据解析成功！共' + parsedData.tax.length + '家税负主体，' + parsedData.pillar2.length + '个支柱二辖区，' + parsedData.tp.length + '家TP主体';
+      showDataPreview(parsedData);
+      renderAllDashboards();
+    } catch(err) {
+      status.className = 'upload-status error';
+      status.textContent = '❌ 解析失败：' + err.message;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parseWorkbook(wb) {
+  // Parse 1.1 tax sheet
+  const taxSheet = wb.Sheets['1.1单家税负率'];
+  const taxArr = taxSheet ? XLSX.utils.sheet_to_json(taxSheet, {header:1, defval:null}) : [];
+  const taxData = [];
+  for (let i = 6; i < taxArr.length - 1; i++) {
+    const row = taxArr[i];
+    if (!row[1]) continue;
+    taxData.push({
+      country: row[0] || '',
+      name: String(row[1]),
+      tax_expense: toNum(row[2]),
+      total_profit: toNum(row[3]),
+      tax_rate: toNum(row[4]),
+      current_tax: toNum(row[15]),
+      current_rate: toNum(row[16])
+    });
+  }
+  
+  // Parse 1.2 pillar 2 sheet
+  const p2Sheet = wb.Sheets['1.2各辖区支柱二补足税'];
+  const p2Arr = p2Sheet ? XLSX.utils.sheet_to_json(p2Sheet, {header:1, defval:null}) : [];
+  const p2Data = [];
+  for (let i = 1; i <= 16 && i < p2Arr.length; i++) {
+    const row = p2Arr[i];
+    if (!row[0]) continue;
+    let eff_rate = toNum(row[6]);
+    if (eff_rate !== null && Math.abs(eff_rate) > 1) eff_rate /= 100;
+    let nom_rate = toNum(row[7]);
+    if (nom_rate !== null && Math.abs(nom_rate) > 1) nom_rate /= 100;
+    p2Data.push({
+      jurisdiction: String(row[0]),
+      code: row[1] ? String(row[1]) : '',
+      revenue: toNum(row[2]),
+      profit: toNum(row[3]),
+      micro_profit_test: row[4] ? String(row[4]) : null,
+      eff_tax: toNum(row[5]),
+      eff_rate: eff_rate,
+      nominal_rate: nom_rate,
+      eff_rate_conclusion: row[8] ? String(row[8]) : null,
+      salary: toNum(row[9]),
+      tangible_asset: toNum(row[10]),
+      sbie: toNum(row[11]),
+      routine_profit_test: row[12] ? String(row[12]) : null,
+      final_safe_harbor: row[13] ? String(row[13]) : null,
+      top_up_tax: toNum(row[14]),
+      note: (row[15] && String(row[15]) !== 'nan') ? String(row[15]) : null
+    });
+  }
+  
+  // Parse 3.TP sheet
+  const tpSheet = wb.Sheets['3.TP'];
+  const tpArr = tpSheet ? XLSX.utils.sheet_to_json(tpSheet, {header:1, defval:null}) : [];
+  const tpData = [];
+  const tpKeyRows = {4:'功能定位', 5:'税率', 9:'营收净额', 10:'营业总成本', 12:'毛利润', 17:'息税前利润', 18:'利润总额', 20:'NCP', 21:'OM', 23:'指标选择', 26:'Q1', 27:'中位值', 28:'Q3', 30:'比较结论', 35:'下四分位基准', 36:'应留存利润', 37:'利润增加额', 38:'应计提税金'};
+  if (tpArr.length > 1) {
+    for (let j = 3; j < (tpArr[1] || []).length; j++) {
+      const name = tpArr[1][j];
+      if (!name) continue;
+      const c = {col: j, country: tpArr[0] ? String(tpArr[0][j] || '') : '', name: String(name)};
+      for (const [rowIdx, label] of Object.entries(tpKeyRows)) {
+        const row = tpArr[parseInt(rowIdx)];
+        c[label] = row && row[j] !== null && row[j] !== undefined ? String(row[j]) : null;
+      }
+      tpData.push(c);
+    }
+  }
+  return {tax: taxData, pillar2: p2Data, tp: tpData};
+}
+
+function toNum(v) {
+  if (v === null || v === undefined || v === '') return null;
+  const n = parseFloat(String(v).replace(/[,%]/g, ''));
+  return isNaN(n) ? null : n;
+}
+
+function showDataPreview(data) {
+  document.getElementById('dataPreviewCard').style.display = 'block';
+  document.getElementById('dataPreview').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+      <div style="padding:16px;background:#f0fff4;border-radius:8px;text-align:center">
+        <div style="font-size:28px;font-weight:700;color:#276749">${data.tax.length}</div>
+        <div style="font-size:13px;color:#718096;margin-top:4px">税负主体</div>
+      </div>
+      <div style="padding:16px;background:#ebf8ff;border-radius:8px;text-align:center">
+        <div style="font-size:28px;font-weight:700;color:#2c5282">${data.pillar2.length}</div>
+        <div style="font-size:13px;color:#718096;margin-top:4px">支柱二辖区</div>
+      </div>
+      <div style="padding:16px;background:#fffaf0;border-radius:8px;text-align:center">
+        <div style="font-size:28px;font-weight:700;color:#744210">${data.tp.length}</div>
+        <div style="font-size:13px;color:#718096;margin-top:4px">TP分析主体</div>
+      </div>
+    </div>`;
+}
+
+function loadEmbeddedData() {
+  appData = EMBEDDED_DATA;
+  showDataPreview(appData);
+  renderAllDashboards();
+}
+
+function renderAllDashboards() {
+  renderTaxDashboard();
+  renderP2Dashboard();
+  renderTpDashboard();
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+function fmt(n, decimals=2) {
+  if (n === null || n === undefined || isNaN(n)) return '--';
+  return (n / 10000).toLocaleString('zh-CN', {minimumFractionDigits: decimals, maximumFractionDigits: decimals});
+}
+function fmtPct(n) {
+  if (n === null || n === undefined || isNaN(n)) return '--';
+  return (n * 100).toFixed(2) + '%';
+}
+function fmtNum(n, decimals=0) {
+  if (n === null || n === undefined || isNaN(n)) return '--';
+  return n.toLocaleString('zh-CN', {minimumFractionDigits: decimals, maximumFractionDigits: decimals});
+}
+function shortName(name) {
+  return name.replace(/^[A-Z]+\.[A-Z0-9]+\s*-\s*/, '').replace(/（.*?）/, '').replace(/\s*LIMITED$/, '').replace(/\s*有限公司$/, '').trim();
+}
+function destroyChart(id) {
+  if (taxCharts[id]) { taxCharts[id].destroy(); taxCharts[id] = null; }
+  if (p2Charts[id]) { p2Charts[id].destroy(); p2Charts[id] = null; }
+  if (tpCharts[id]) { tpCharts[id].destroy(); tpCharts[id] = null; }
+}
+
+// ============================================================
+// TAX DASHBOARD
+// ============================================================
+function renderTaxDashboard() {
+  const data = appData.tax;
+  document.getElementById('taxCompanyCount').textContent = data.length;
+  
+  // Build country list for filter
+  const countries = [...new Set(data.map(d => d.country).filter(Boolean))].sort();
+  const sel = document.getElementById('taxCountryFilter');
+  sel.innerHTML = '<option value="">全部</option>';
+  countries.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o); });
+  
+  // KPIs
+  const profitable = data.filter(d => d.total_profit !== null && d.total_profit > 0);
+  const totalTaxExpense = data.reduce((s, d) => s + (d.tax_expense || 0), 0);
+  const totalProfit = data.reduce((s, d) => s + (d.total_profit || 0), 0);
+  const overallRate = totalProfit > 0 ? totalTaxExpense / totalProfit : null;
+  const highRate = data.filter(d => d.tax_rate !== null && d.tax_rate > 0.35 && d.total_profit > 0);
+  const lossEntities = data.filter(d => d.total_profit !== null && d.total_profit < 0);
+  const zeroTax = data.filter(d => d.total_profit !== null && d.total_profit > 0 && d.tax_expense !== null && d.tax_expense <= 0);
+  
+  document.getElementById('taxKpis').innerHTML = `
+    <div class="kpi-card"><div class="kpi-label">整体税负率</div><div class="kpi-value">${fmtPct(overallRate)}</div><div class="kpi-sub">所得税费用/利润总额</div></div>
+    <div class="kpi-card orange"><div class="kpi-label">盈利主体数</div><div class="kpi-value">${profitable.length}</div><div class="kpi-sub">利润>0的主体</div></div>
+    <div class="kpi-card warn"><div class="kpi-label">高税负预警</div><div class="kpi-value">${highRate.length}</div><div class="kpi-sub">税负率 > 35%</div></div>
+    <div class="kpi-card"><div class="kpi-label">亏损主体</div><div class="kpi-value">${lossEntities.length}</div><div class="kpi-sub">利润总额 < 0</div></div>
+    <div class="kpi-card ok"><div class="kpi-label">总所得税费用</div><div class="kpi-value">${fmt(totalTaxExpense, 0)}万</div><div class="kpi-sub">人民币</div></div>
+  `;
+
+  // AI Analysis
+  const alerts = [];
+  if (highRate.length > 0) {
+    alerts.push({type: 'critical', icon: '🚨', msg: `<strong>高税负预警：</strong>${highRate.length}家主体税负率超过35%，包括：${highRate.slice(0,3).map(d => shortName(d.name) + '(' + fmtPct(d.tax_rate) + ')').join('、')}${highRate.length > 3 ? '等' : ''}。建议关注税前扣除项目是否完整，是否存在不可抵扣费用。`});
+  }
+  
+  const abnormalNeg = data.filter(d => d.total_profit !== null && d.total_profit < 0 && d.tax_expense !== null && d.tax_expense > 0);
+  if (abnormalNeg.length > 0) {
+    alerts.push({type: 'warning', icon: '⚠️', msg: `<strong>亏损仍有所得税：</strong>${abnormalNeg.length}家主体利润总额为负但仍计提所得税费用，可能存在纳税调增项目（如非允许扣除的费用），需关注：${abnormalNeg.slice(0,3).map(d => shortName(d.name)).join('、')}。`});
+  }
+  
+  if (zeroTax.length > 0) {
+    alerts.push({type: 'warning', icon: '⚠️', msg: `<strong>盈利但无税：</strong>${zeroTax.length}家盈利主体所得税费用≤0，请确认是否享受税收优惠（高新企业、西部大开发等）或存在大额递延税资产确认。`});
+  }
+  
+  const cn_data = data.filter(d => d.country === 'CN' && d.total_profit !== null && d.total_profit > 0);
+  const cn_tax = cn_data.reduce((s,d) => s + (d.tax_expense||0), 0);
+  const cn_profit = cn_data.reduce((s,d) => s + (d.total_profit||0), 0);
+  if (cn_profit > 0) {
+    const cn_rate = cn_tax / cn_profit;
+    alerts.push({type: cn_rate > 0.3 ? 'warning' : 'info', icon: '🇨🇳', msg: `<strong>境内税负率：</strong>境内盈利主体整体有效税率约 ${fmtPct(cn_rate)}，法定税率25%${cn_rate < 0.25 ? '，低于名义税率，请确认是否有优惠税率或大额递延税' : cn_rate > 0.3 ? '，超过名义税率，存在不可抵扣项目' : '，接近名义税率，属正常水平'}。`});
+  }
+
+  alerts.push({type: 'good', icon: '✅', msg: `<strong>数据完整性：</strong>共 ${data.length} 家主体，其中 ${profitable.length} 家盈利、${lossEntities.length} 家亏损。分析覆盖2026年2月累计数据。`});
+  
+  document.getElementById('taxAiAlerts').innerHTML = alerts.map(a => 
+    `<div class="ai-alert ${a.type}"><span class="alert-icon">${a.icon}</span><span>${a.msg}</span></div>`).join('');
+
+  renderTaxCharts(data);
+  taxPage = 1;
+  renderTaxTable();
+}
+
+function renderTaxCharts(data) {
+  // Distribution chart
+  const profitable = data.filter(d => d.tax_rate !== null && d.total_profit > 0 && d.tax_rate >= 0);
+  const bins = [0, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.5, 1];
+  const labels = ['0-10%', '10-15%', '15-20%', '20-25%', '25-30%', '30-35%', '35-50%', '>50%'];
+  const counts = bins.slice(0,-1).map((b, i) => profitable.filter(d => d.tax_rate >= b && d.tax_rate < bins[i+1]).length);
+  
+  const ctx1 = document.getElementById('taxDistChart').getContext('2d');
+  destroyChart('taxDistChart');
+  taxCharts['taxDistChart'] = new Chart(ctx1, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: '主体数量',
+        data: counts,
+        backgroundColor: counts.map((c, i) => i >= 5 ? '#fc8181' : i >= 3 ? '#f6ad55' : '#68d391'),
+        borderRadius: 6
+      }]
+    },
+    options: {responsive: true, maintainAspectRatio: false, plugins: {legend: {display: false}}, scales: {y: {beginAtZero: true, ticks: {stepSize: 1}}}}
+  });
+
+  // Top 20 by tax rate
+  const sorted = data.filter(d => d.tax_rate !== null && d.total_profit > 100000).sort((a,b) => b.tax_rate - a.tax_rate).slice(0, 20);
+  const ctx2 = document.getElementById('taxTop20Chart').getContext('2d');
+  destroyChart('taxTop20Chart');
+  taxCharts['taxTop20Chart'] = new Chart(ctx2, {
+    type: 'bar',
+    data: {
+      labels: sorted.map(d => shortName(d.name)),
+      datasets: [{
+        label: '税负率',
+        data: sorted.map(d => parseFloat((d.tax_rate * 100).toFixed(2))),
+        backgroundColor: sorted.map(d => d.tax_rate > 0.35 ? '#fc8181' : d.tax_rate > 0.25 ? '#f6ad55' : '#68d391'),
+        borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: {legend: {display: false}, tooltip: {callbacks: {label: ctx => ctx.raw + '%'}}},
+      scales: {x: {beginAtZero: true, ticks: {callback: v => v + '%'}}}
+    }
+  });
+}
+
+let filteredTaxData = [];
+function renderTaxTable() {
+  const data = appData.tax;
+  const country = document.getElementById('taxCountryFilter').value;
+  const alertType = document.getElementById('taxAlertFilter').value;
+  const search = document.getElementById('taxSearch').value.toLowerCase();
+  
+  filteredTaxData = data.filter(d => {
+    if (country && d.country !== country) return false;
+    if (search && !d.name.toLowerCase().includes(search)) return false;
+    if (alertType === 'critical' && !(d.tax_rate !== null && d.tax_rate > 0.35 && d.total_profit > 0)) return false;
+    if (alertType === 'negative' && !(d.total_profit !== null && d.total_profit < 0)) return false;
+    if (alertType === 'zero' && !(d.total_profit > 0 && (d.tax_expense === null || d.tax_expense <= 0))) return false;
+    return true;
+  });
+  
+  const total = filteredTaxData.length;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  if (taxPage > totalPages) taxPage = 1;
+  const start = (taxPage - 1) * PAGE_SIZE;
+  const pageData = filteredTaxData.slice(start, start + PAGE_SIZE);
+  
+  const tbody = document.getElementById('taxTableBody');
+  tbody.innerHTML = pageData.map(d => {
+    const rate = d.tax_rate;
+    const ratePD = d.current_rate;
+    const isHigh = rate !== null && rate > 0.35 && d.total_profit > 0;
+    const isLoss = d.total_profit !== null && d.total_profit < 0;
+    const isZero = d.total_profit > 0 && (d.tax_expense === null || d.tax_expense <= 0);
+    let rowClass = isHigh ? 'highlight-row' : '';
+    let badge = '';
+    if (isHigh) badge = '<span class="badge badge-red">高税负</span>';
+    else if (isLoss && d.tax_expense > 0) badge = '<span class="badge badge-orange">亏损有税</span>';
+    else if (isLoss) badge = '<span class="badge badge-gray">亏损</span>';
+    else if (isZero) badge = '<span class="badge badge-yellow">零税</span>';
+    else badge = '<span class="badge badge-green">正常</span>';
+    
+    const rateClass = rate === null ? 'na-pct' : rate > 0.35 ? 'warn-pct' : rate < 0 ? 'warn-pct' : 'ok-pct';
+    return `<tr class="${rowClass}">
+      <td><span class="badge badge-blue">${d.country}</span></td>
+      <td title="${d.name}">${shortName(d.name)}</td>
+      <td class="num-right">${fmt(d.tax_expense)}万</td>
+      <td class="num-right">${fmt(d.total_profit)}万</td>
+      <td class="num-right pct-cell ${rateClass}">${fmtPct(rate)}</td>
+      <td class="num-right">${fmt(d.current_tax)}万</td>
+      <td class="num-right pct-cell ${ratePD === null ? 'na-pct' : ratePD > 0.35 ? 'warn-pct' : 'ok-pct'}">${fmtPct(ratePD)}</td>
+      <td>${badge}</td>
+    </tr>`;
+  }).join('');
+  
+  renderPagination('taxPagination', taxPage, totalPages, (p) => { taxPage = p; renderTaxTable(); }, total);
+}
+
+// ============================================================
+// PILLAR 2 DASHBOARD
+// ============================================================
+function renderP2Dashboard() {
+  const data = appData.pillar2;
+  const pass = data.filter(d => d.final_safe_harbor === 'Yes').length;
+  const fail = data.filter(d => d.final_safe_harbor === 'No').length;
+  const na = data.filter(d => !d.final_safe_harbor).length;
+  const totalTopUp = data.reduce((s, d) => s + (d.top_up_tax || 0), 0);
+  const riskRevenue = data.filter(d => d.final_safe_harbor === 'No').reduce((s, d) => s + (d.revenue || 0), 0);
+  
+  document.getElementById('p2Kpis').innerHTML = `
+    <div class="kpi-card ok"><div class="kpi-label">安全港通过</div><div class="kpi-value">${pass}</div><div class="kpi-sub">辖区</div></div>
+    <div class="kpi-card warn"><div class="kpi-label">安全港不通过</div><div class="kpi-value">${fail}</div><div class="kpi-sub">需关注辖区</div></div>
+    <div class="kpi-card orange"><div class="kpi-label">补足税估算合计</div><div class="kpi-value">${fmt(totalTopUp, 0)}万</div><div class="kpi-sub">不通过辖区合计</div></div>
+    <div class="kpi-card"><div class="kpi-label">风险辖区收入规模</div><div class="kpi-value">${fmt(riskRevenue/10000, 0)}亿</div><div class="kpi-sub">不通过辖区合计</div></div>
+  `;
+  
+  // AI alerts
+  const alerts = [];
+  const failData = data.filter(d => d.final_safe_harbor === 'No');
+  if (failData.length > 0) {
+    const topFail = failData.sort((a,b) => (b.top_up_tax||0) - (a.top_up_tax||0));
+    alerts.push({type: 'critical', icon: '🚨', msg: `<strong>支柱二补足税风险：</strong>以下 ${failData.length} 个辖区未通过过渡性国别报告安全港测试：<br>` + 
+      topFail.map(d => `• ${d.jurisdiction}（${d.code}）：有效税率 ${d.eff_rate !== null ? fmtPct(d.eff_rate) : '--'}，名义税率 ${fmtPct(d.nominal_rate)}，估算补足税 ${fmt(d.top_up_tax, 0)}万元`).join('<br>')});
+  }
+  
+  const lowRate = data.filter(d => d.eff_rate !== null && d.eff_rate < 0.15 && d.profit > 0);
+  if (lowRate.length > 0) {
+    alerts.push({type: 'warning', icon: '⚠️', msg: `<strong>低有效税率辖区：</strong>${lowRate.map(d => d.jurisdiction + '(' + fmtPct(d.eff_rate) + ')').join('、')} 的有效税率低于15%的全球最低税率门槛，面临支柱二补足税风险。`});
+  }
+  
+  const notes = data.filter(d => d.note && d.note.length > 3);
+  notes.forEach(d => {
+    alerts.push({type: 'info', icon: '📝', msg: `<strong>${d.jurisdiction}：</strong>${d.note}`});
+  });
+  
+  if (pass > 0) {
+    const passJuris = data.filter(d => d.final_safe_harbor === 'Yes').map(d => d.jurisdiction.split(' ')[0]);
+    alerts.push({type: 'good', icon: '✅', msg: `<strong>安全港通过：</strong>${passJuris.join('、')} 等 ${pass} 个辖区通过过渡性安全港测试，暂不需要进行GloBE详细计算。`});
+  }
+  
+  document.getElementById('p2AiAlerts').innerHTML = alerts.map(a => 
+    `<div class="ai-alert ${a.type}"><span class="alert-icon">${a.icon}</span><span>${a.msg}</span></div>`).join('');
+
+  // Cards
+  document.getElementById('p2Cards').innerHTML = data.map(d => {
+    const status = d.final_safe_harbor === 'Yes' ? 'pass' : d.final_safe_harbor === 'No' ? 'fail' : 'na';
+    const statusBadge = status === 'pass' ? '<span class="badge badge-green">✓ 安全港通过</span>' : status === 'fail' ? '<span class="badge badge-red">✗ 需补缴税款</span>' : '<span class="badge badge-gray">待确认</span>';
+    const test1 = d.micro_profit_test === 'Yes' ? '<span class="badge badge-green">✓</span>' : d.micro_profit_test === 'No' ? '<span class="badge badge-orange">✗</span>' : '<span class="badge badge-gray">-</span>';
+    const test2 = d.eff_rate_conclusion === 'Yes' ? '<span class="badge badge-green">✓</span>' : d.eff_rate_conclusion === 'No' ? '<span class="badge badge-red">✗</span>' : '<span class="badge badge-gray">-</span>';
+    const test3 = d.routine_profit_test === 'Yes' ? '<span class="badge badge-green">✓</span>' : d.routine_profit_test === 'No' ? '<span class="badge badge-orange">✗</span>' : '<span class="badge badge-gray">-</span>';
+    
+    return `<div class="p2-card ${status}">
+      <div class="p2-name">${d.jurisdiction}</div>
+      <div class="p2-metrics">
+        <div class="p2-metric"><div class="p2-metric-label">收入总额</div><div class="p2-metric-value">${fmt(d.revenue, 0)}万</div></div>
+        <div class="p2-metric"><div class="p2-metric-label">利润总额</div><div class="p2-metric-value">${fmt(d.profit, 0)}万</div></div>
+        <div class="p2-metric"><div class="p2-metric-label">简化有效税率</div><div class="p2-metric-value" style="color:${d.eff_rate !== null && d.eff_rate < 0.15 ? '#e53e3e' : '#276749'}">${fmtPct(d.eff_rate)}</div></div>
+        <div class="p2-metric"><div class="p2-metric-label">名义税率</div><div class="p2-metric-value">${fmtPct(d.nominal_rate)}</div></div>
+        ${status === 'fail' ? `<div class="p2-metric"><div class="p2-metric-label">补足税估算</div><div class="p2-metric-value" style="color:#e53e3e">${fmt(d.top_up_tax, 0)}万</div></div>` : ''}
+      </div>
+      <div class="p2-verdict">
+        <div style="font-size:11px;color:var(--text-light);margin-right:4px">三项测试：</div>
+        <span title="微利测试">${test1}</span>
+        <span title="有效税率测试">${test2}</span>
+        <span title="常规微利测试">${test3}</span>
+        ${statusBadge}
+      </div>
+      ${d.note ? `<div style="margin-top:8px;font-size:11px;color:#718096;border-top:1px solid rgba(0,0,0,0.1);padding-top:8px">${d.note.substring(0, 80)}${d.note.length > 80 ? '...' : ''}</div>` : ''}
+    </div>`;
+  }).join('');
+  
+  renderP2Table();
+  renderP2Chart(data);
+}
+
+function renderP2Table() {
+  const data = appData.pillar2;
+  const filter = document.getElementById('p2StatusFilter').value;
+  const filtered = data.filter(d => {
+    if (filter === 'fail' && d.final_safe_harbor !== 'No') return false;
+    if (filter === 'pass' && d.final_safe_harbor !== 'Yes') return false;
+    return true;
+  });
+  
+  document.getElementById('p2TableBody').innerHTML = filtered.map(d => {
+    const isFail = d.final_safe_harbor === 'No';
+    const rowClass = isFail ? 'highlight-row' : '';
+    const sh = d.final_safe_harbor === 'Yes' ? '<span class="badge badge-green">通过</span>' : d.final_safe_harbor === 'No' ? '<span class="badge badge-red">不通过</span>' : '<span class="badge badge-gray">待定</span>';
+    const yn = v => v === 'Yes' ? '<span class="badge badge-green">通过</span>' : v === 'No' ? '<span class="badge badge-red">不通过</span>' : '<span class="badge badge-gray">--</span>';
+    return `<tr class="${rowClass}">
+      <td><strong>${d.jurisdiction}</strong></td>
+      <td class="num-right">${fmt(d.revenue, 0)}万</td>
+      <td class="num-right">${fmt(d.profit, 0)}万</td>
+      <td class="num-right">${fmt(d.eff_tax, 0)}万</td>
+      <td class="num-right pct-cell ${d.eff_rate !== null && d.eff_rate < 0.15 && d.profit > 0 ? 'warn-pct' : 'ok-pct'}">${fmtPct(d.eff_rate)}</td>
+      <td class="num-right">${fmtPct(d.nominal_rate)}</td>
+      <td>${yn(d.micro_profit_test)}</td>
+      <td>${yn(d.eff_rate_conclusion)}</td>
+      <td>${yn(d.routine_profit_test)}</td>
+      <td>${sh}</td>
+      <td class="num-right ${d.top_up_tax > 0 ? 'warn-pct' : ''}">${fmt(d.top_up_tax, 0)}万</td>
+      <td style="max-width:200px;font-size:12px;color:#718096" title="${d.note||''}">${d.note ? d.note.substring(0,50)+'...' : '--'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderP2Chart(data) {
+  const valid = data.filter(d => d.eff_rate !== null && d.nominal_rate !== null && d.revenue > 0);
+  const ctx = document.getElementById('p2RateChart').getContext('2d');
+  destroyChart('p2RateChart');
+  p2Charts['p2RateChart'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: valid.map(d => d.jurisdiction.split(' ')[0]),
+      datasets: [
+        {label: '简化有效税率', data: valid.map(d => parseFloat((d.eff_rate * 100).toFixed(2))), backgroundColor: valid.map(d => d.final_safe_harbor === 'No' ? '#fc8181' : '#68d391'), borderRadius: 4},
+        {label: '名义税率', data: valid.map(d => parseFloat((d.nominal_rate * 100).toFixed(2))), backgroundColor: 'transparent', borderColor: '#718096', borderWidth: 2, type: 'line', pointRadius: 4}
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {legend: {position: 'top'}, annotation: {}},
+      scales: {
+        y: {beginAtZero: true, ticks: {callback: v => v + '%'}}
+      }
+    }
+  });
+}
+
+// ============================================================
+// TP DASHBOARD
+// ============================================================
+function renderTpDashboard() {
+  const data = appData.tp;
+  document.getElementById('tpCompanyCount').textContent = data.length;
+  
+  const below = data.filter(d => d['比较结论'] && d['比较结论'].includes('低于'));
+  const above = data.filter(d => d['比较结论'] && d['比较结论'].includes('高于'));
+  const within = data.filter(d => d['比较结论'] && d['比较结论'].includes('在四分位'));
+  const totalProvision = data.reduce((s, d) => s + parseFloat(d['应计提税金'] || 0), 0);
+  const riskCount = below.length + above.length;
+  
+  document.getElementById('tpKpis').innerHTML = `
+    <div class="kpi-card warn"><div class="kpi-label">低于四分位（偏低）</div><div class="kpi-value">${below.length}</div><div class="kpi-sub">利润率低于独立区间</div></div>
+    <div class="kpi-card orange"><div class="kpi-label">高于四分位（偏高）</div><div class="kpi-value">${above.length}</div><div class="kpi-sub">利润率超出独立区间</div></div>
+    <div class="kpi-card ok"><div class="kpi-label">在区间内</div><div class="kpi-value">${within.length}</div><div class="kpi-sub">符合独立交易原则</div></div>
+    <div class="kpi-card"><div class="kpi-label">应计提税金拨备</div><div class="kpi-value">${fmt(totalProvision, 0)}万</div><div class="kpi-sub">单体层面合计（不含DTA）</div></div>
+  `;
+  
+  // Country filter
+  const countries = [...new Set(data.map(d => d.country).filter(Boolean))].sort();
+  const sel = document.getElementById('tpCountryFilter');
+  sel.innerHTML = '<option value="">全部辖区</option>';
+  countries.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o); });
+  
+  // AI
+  const alerts = [];
+  if (below.length > 0) {
+    const topBelow = below.filter(d => parseFloat(d['应计提税金']||0) > 0).sort((a,b) => parseFloat(b['应计提税金']||0) - parseFloat(a['应计提税金']||0));
+    alerts.push({type: 'critical', icon: '🚨', msg: `<strong>TP合规风险：</strong>${below.length}家主体利润率低于TPD四分位区间下限，存在转让定价调整风险。需关注可能的税前利润调增及相关税金拨备，影响最大的包括：${topBelow.slice(0,3).map(d => shortName(d.name) + '(应计提' + fmt(parseFloat(d['应计提税金']||0), 0) + '万)').join('、')}。`});
+  }
+  if (above.length > 0) {
+    alerts.push({type: 'warning', icon: '⚠️', msg: `<strong>利润率偏高：</strong>${above.length}家主体利润率高于TPD四分位上限，需确认是否存在特殊情况（如特许权使用费调整、关联采购偏低等），并更新TPD说明。`});
+  }
+  const highProvision = data.filter(d => parseFloat(d['应计提税金']||0) > 1000000);
+  if (highProvision.length > 0) {
+    alerts.push({type: 'warning', icon: '💰', msg: `<strong>重大税务拨备：</strong>${highProvision.length}家主体单体应计提税金超过100万元，建议与业务部门核实定价策略：${highProvision.slice(0,3).map(d => shortName(d.name) + '(' + fmt(parseFloat(d['应计提税金']||0), 0) + '万)').join('、')}。`});
+  }
+  alerts.push({type: 'info', icon: '📋', msg: `<strong>测试覆盖：</strong>本期对 ${data.length} 家主体进行TP利润率测试，其中制造商/服务提供商 ${data.filter(d => d['功能定位'] && d['功能定位'].includes('制造')).length} 家（使用NCP），分销商 ${data.filter(d => d['功能定位'] && d['功能定位'].includes('分销')).length} 家（使用OM）。`});
+  
+  document.getElementById('tpAiAlerts').innerHTML = alerts.map(a => 
+    `<div class="ai-alert ${a.type}"><span class="alert-icon">${a.icon}</span><span>${a.msg}</span></div>`).join('');
+  
+  renderTpCharts(data, below, above, within);
+  tpPage = 1;
+  renderTpTable();
+}
+
+function renderTpCharts(data, below, above, within) {
+  const na = data.length - below.length - above.length - within.length;
+  const ctx1 = document.getElementById('tpStatusChart').getContext('2d');
+  destroyChart('tpStatusChart');
+  tpCharts['tpStatusChart'] = new Chart(ctx1, {
+    type: 'doughnut',
+    data: {
+      labels: ['低于四分位区间', '高于四分位区间', '在四分位区间内', '暂无数据'],
+      datasets: [{data: [below.length, above.length, within.length, na], backgroundColor: ['#fc8181', '#f6ad55', '#68d391', '#e2e8f0'], borderWidth: 2, borderColor: '#fff'}]
+    },
+    options: {responsive: true, maintainAspectRatio: false, plugins: {legend: {position: 'bottom'}}}
+  });
+  
+  const topProvision = data.filter(d => parseFloat(d['应计提税金']||0) > 0).sort((a,b) => parseFloat(b['应计提税金']||0) - parseFloat(a['应计提税金']||0)).slice(0,10);
+  const ctx2 = document.getElementById('tpTaxChart').getContext('2d');
+  destroyChart('tpTaxChart');
+  tpCharts['tpTaxChart'] = new Chart(ctx2, {
+    type: 'bar',
+    data: {
+      labels: topProvision.map(d => shortName(d.name)),
+      datasets: [{label: '应计提税金(万元)', data: topProvision.map(d => parseFloat((parseFloat(d['应计提税金']||0)/10000).toFixed(2))), backgroundColor: '#fc8181', borderRadius: 4}]
+    },
+    options: {indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: {legend: {display: false}}, scales: {x: {beginAtZero: true}}}
+  });
+}
+
+let filteredTpData = [];
+function renderTpTable() {
+  const data = appData.tp;
+  const status = document.getElementById('tpStatusFilter').value;
+  const country = document.getElementById('tpCountryFilter').value;
+  const func = document.getElementById('tpFuncFilter').value;
+  const search = document.getElementById('tpSearch').value.toLowerCase();
+  
+  filteredTpData = data.filter(d => {
+    if (country && d.country !== country) return false;
+    if (func && d['功能定位'] !== func) return false;
+    if (search && !d.name.toLowerCase().includes(search)) return false;
+    if (status === 'below' && !(d['比较结论'] && d['比较结论'].includes('低于'))) return false;
+    if (status === 'above' && !(d['比较结论'] && d['比较结论'].includes('高于'))) return false;
+    if (status === 'within' && !(d['比较结论'] && d['比较结论'].includes('在四分位'))) return false;
+    return true;
+  });
+  
+  const total = filteredTpData.length;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
+  if (tpPage > totalPages) tpPage = 1;
+  const start = (tpPage - 1) * PAGE_SIZE;
+  const pageData = filteredTpData.slice(start, start + PAGE_SIZE);
+  
+  const tbody = document.getElementById('tpTableBody');
+  tbody.innerHTML = pageData.map(d => {
+    const metric = d['指标选择'] === 'NCP' ? d['NCP'] : d['OM'];
+    const metricVal = parseFloat(metric || 0);
+    const q1 = parseFloat(d['Q1'] || 0);
+    const q3 = parseFloat(d['Q3'] || 0);
+    const conclusion = d['比较结论'] || '--';
+    const isBelow = conclusion.includes('低于');
+    const isAbove = conclusion.includes('高于');
+    const rowClass = isBelow ? 'highlight-row' : isAbove ? 'top-tax' : '';
+    
+    let conclusionBadge = '';
+    if (isBelow) conclusionBadge = '<span class="badge badge-red">⬇ 低于区间</span>';
+    else if (isAbove) conclusionBadge = '<span class="badge badge-orange">⬆ 高于区间</span>';
+    else if (conclusion.includes('在四分位')) conclusionBadge = '<span class="badge badge-green">✓ 区间内</span>';
+    else conclusionBadge = '<span class="badge badge-gray">--</span>';
+    
+    const provision = parseFloat(d['应计提税金'] || 0);
+    return `<tr class="${rowClass}">
+      <td><span class="badge badge-blue">${d.country}</span></td>
+      <td title="${d.name}">${shortName(d.name)}</td>
+      <td><span class="badge badge-gray">${d['功能定位'] || '--'}</span></td>
+      <td>${d['指标选择'] || '--'}</td>
+      <td class="num-right pct-cell ${isBelow ? 'warn-pct' : isAbove ? 'warn-pct' : 'ok-pct'}">${metric ? fmtPct(parseFloat(metric)) : '--'}</td>
+      <td class="num-right">${d['Q1'] ? fmtPct(parseFloat(d['Q1'])) : '--'}</td>
+      <td class="num-right">${d['中位值'] ? fmtPct(parseFloat(d['中位值'])) : '--'}</td>
+      <td class="num-right">${d['Q3'] ? fmtPct(parseFloat(d['Q3'])) : '--'}</td>
+      <td>${conclusionBadge}</td>
+      <td class="num-right">${fmt(parseFloat(d['利润增加额']||0), 0)}</td>
+      <td class="num-right ${provision > 0 ? 'warn-pct' : ''}">${provision > 0 ? fmt(provision, 0) : '--'}</td>
+    </tr>`;
+  }).join('');
+  
+  renderPagination('tpPagination', tpPage, totalPages, (p) => { tpPage = p; renderTpTable(); }, total);
+}
+
+// ============================================================
+// PAGINATION
+// ============================================================
+function renderPagination(containerId, currentPage, totalPages, onPageChange, total) {
+  const container = document.getElementById(containerId);
+  if (totalPages <= 1) { container.innerHTML = `<span class="page-info">共 ${total} 条</span>`; return; }
+  
+  let html = `<span class="page-info">共 ${total} 条</span>`;
+  if (currentPage > 1) html += `<button class="page-btn" onclick="(${onPageChange.toString()})(${currentPage-1})">‹ 上页</button>`;
+  
+  const start = Math.max(1, currentPage - 2);
+  const end = Math.min(totalPages, start + 4);
+  for (let i = start; i <= end; i++) {
+    html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="(${onPageChange.toString()})(${i})">${i}</button>`;
+  }
+  
+  if (currentPage < totalPages) html += `<button class="page-btn" onclick="(${onPageChange.toString()})(${currentPage+1})">下页 ›</button>`;
+  container.innerHTML = html;
+}
+
+// ============================================================
+// INIT
+// ============================================================
+window.onload = function() {
+  // Try to load embedded data immediately
+  if (EMBEDDED_DATA && EMBEDDED_DATA.tax && EMBEDDED_DATA.tax.length > 0) {
+    appData = EMBEDDED_DATA;
+    renderAllDashboards();
+    document.getElementById('uploadStatus').className = 'upload-status success';
+    document.getElementById('uploadStatus').textContent = '✅ 已加载内置数据（2026年2月）· 可上传新文件以刷新数据';
+    showDataPreview(appData);
+  }
+};
+</script>
+
+</body>
+</html>
